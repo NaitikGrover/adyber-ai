@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Build & Package Outputs
+dist/
+dist-app/
+dist-electron/
+build-output/
+installer-output/
+release-build/
+build/
+out/
+release/
+.vite/
+
+# Temporary Vite & System Files
+vite.config.js.timestamp*
+*.timestamp*
+*.log
+*.tmp
+*.temp
+
+# Security, Privacy & Local User Data (DO NOT UPLOAD)
+backend/settings.json
+backend/memory.json
+backend/.api_token
+.api_token
+GEMINI.md
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase & Deployment Cache
+.firebase/
+firebase-debug.log*
+ui-debug.log
+
+# OS & Python Artifacts
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.pyc
+__pycache__/
+backend/__pycache__/
+audio/__pycache__/
+core/__pycache__/

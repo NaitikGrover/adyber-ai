@@ -1,0 +1,27 @@
+# Adyber Backend Python Requirements
+# Install with: pip install -r requirements.txt
+
+# Web server & API
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+
+# Web search
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# TTS (edge-tts neural voices - primary)
+edge-tts>=6.1.9
+
+# STT (speech-to-text via Google Web Speech API)
+sounddevice>=0.4.6
+numpy>=1.26.0
+scipy>=1.13.0
+SpeechRecognition>=3.10.0
+
+# Windows SAPI5 TTS (optional, Windows-only)
+# pywin32>=306
+# pyttsx3>=2.90
+
+# Free AI mode (optional)
+# g4f>=0.2.9
