@@ -1,0 +1,79 @@
+{
+  "name": "ady-ai-assistant",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Adyber Desktop AI Assistant",
+  "author": "Pritha ReelBee",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev:vite": "vite",
+    "dev:electron": "electron .",
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build",
+    "dist": "vite build && electron-builder",
+    "start": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\""
+  },
+  "build": {
+    "appId": "com.adyber.app",
+    "productName": "Adyber AI",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json",
+      "public/**/*"
+    ],
+    "extraResources": [
+      "backend/**/*",
+      "audio/**/*",
+      "core/**/*",
+      "config.py",
+      "requirements.txt"
+    ],
+    "win": {
+      "icon": "public/icon.ico",
+      "target": [
+        "nsis",
+        "portable",
+        "dir"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Adyber AI",
+      "installerIcon": "public/icon.ico",
+      "uninstallerIcon": "public/icon.ico",
+      "installerHeaderIcon": "public/icon.ico"
+    }
+  },
+  "dependencies": {
+    "firebase": "^12.17.1",
+    "lucide-react": "^0.344.0",
+    "orb-ui": "^0.7.0",
+    "react": "^18.2.0",
+    "react-confetti-boom": "^2.0.1",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.5.4",
+    "concurrently": "^8.2.2",
+    "electron": "^29.4.6",
+    "electron-builder": "^26.15.3",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3",
+    "vite": "^5.1.6",
+    "wait-on": "^9.1.0"
+  }
+}
