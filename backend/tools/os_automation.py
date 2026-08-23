@@ -279,9 +279,26 @@ class AppLauncher:
             except Exception:
                 pass
 
-        # --- 2. YOUTUBE MUSIC / MEDIA ACTIONS ---
-        elif target_clean in ["youtube_music", "youtube music", "yt music", "ytmusic"]:
-            action_url = f"https://music.youtube.com/search?q={query_encoded}" if query_encoded else "https://music.youtube.com"
+        # --- 2. SMART MUSIC & MEDIA PLAYBACK HIERARCHY ---
+        elif any(kw in target_clean for kw in ["play", "music", "song", "spotify", "youtube_music", "youtube music", "yt music", "ytmusic"]):
+            spotify_path = AppLauncher._find_app_in_system("spotify")
+            ytmusic_path = AppLauncher._find_app_in_system("youtube music") or AppLauncher._find_app_in_system("yt music")
+
+            if "spotify" in target_clean or (spotify_path and "youtube" not in target_clean):
+                # Spotify is installed or explicitly requested
+                if query_encoded:
+                    action_url = f"spotify:search:{query_encoded}"
+                else:
+                    action_url = "spotify:"
+            elif ytmusic_path and "spotify" not in target_clean:
+                # YouTube Music desktop app is installed
+                target_path = ytmusic_path
+            else:
+                # Web fallback for music playback
+                if query_encoded:
+                    action_url = f"https://music.youtube.com/search?q={query_encoded}"
+                else:
+                    action_url = "https://music.youtube.com"
 
         elif target_clean in ["youtube", "yt"]:
             action_url = f"https://www.youtube.com/results?search_query={query_encoded}" if query_encoded else "https://www.youtube.com"
