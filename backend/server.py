@@ -287,44 +287,25 @@ async def process_prompt_and_respond(user_text: str, websocket: WebSocket, tts):
                 print(f"[Security] Blocked malicious action target: {target_clean}")
                 continue
             
-            # If it's a local app, actively verify it exists before allowing the AI to speak
-            is_website = target_clean in ["chrome", "google chrome", "browser", "web", "youtube", "youtube_music", "yt music", "amazon", "amazon.com", "amazon.in"] or "." in target_clean.split(" ")[0] or target_clean.startswith("http")
-            
-            if not is_website:
-                cmd = AppLauncher.KNOWN_APPS.get(target_clean)
-                shortcut_path = None
-                if not cmd:
-                    shortcut_path = AppLauncher._find_app_in_start_menu(target_clean)
-                
-                if not cmd and not shortcut_path:
-                    # FEEDBACK LOOP: Intercept failure!
-                    app_not_found = target
-                    break
-            
-            # App exists or is a web action, proceed with launch
-            AppLauncher.launch_app(target, query)
+            # App launcher handles scanning and launching
+            success = AppLauncher.launch_app(target, query)
+            if not success:
+                app_not_found = target
+                break
         except json.JSONDecodeError:
             print("[OS Automation] Failed to parse JSON ACTION tag.")
             pass
 
     if app_not_found:
-        print(f"[Agent Loop] Feedback triggered: '{app_not_found}' not found. Reprompting AI.")
-        feedback_prompt = f"SYSTEM ERROR: The user asked to open '{app_not_found}', but it is NOT installed on their computer. Apologize and ask if they would like you to open the '{app_not_found}' website for them instead to download it. Do not output any action tags."
-        
-        # Override the summary_text by doing a 2nd pass LLM call
-        # Call this in a thread to prevent blocking the async loop
-        try:
-            summary_text = llm_manager._execute_llm(feedback_prompt, llm_manager._load_system_prompt(), memory.get_memory_context_prompt(), "")
-        except Exception as e:
-            print(f"[Agent Loop] Failed to reprompt AI: {e}")
-            summary_text = f"I could not find {app_not_found} on your computer. Would you like me to open the website for it instead?"
-        # No tags to strip in the apology response
+        print(f"[Agent Loop] App '{app_not_found}' not found on system.")
+        summary_text = f"I could not find '{app_not_found}' installed on your computer. Would you like me to open the web page for it instead?"
     else:
         # Strip all hidden tags from the successful spoken text
         summary_text = re.sub(r"<ACTION>.*?</ACTION>", "", summary_text, flags=re.IGNORECASE | re.DOTALL).strip()
+        summary_text = re.sub(r"<SEARCH_WEB>.*?</SEARCH_WEB>", "", summary_text, flags=re.IGNORECASE | re.DOTALL).strip()
         
         # [LONG-TERM MEMORY] Intercept and save user facts!
-        fact_matches = re.finditer(r"<SAVE_FACT>(.*?)</SAVE_FACT>", summary_text, re.IGNORECASE)
+        fact_matches = list(re.finditer(r"<SAVE_FACT>(.*?)</SAVE_FACT>", summary_text, re.IGNORECASE))
         for match in fact_matches:
             fact_data = match.group(1).strip()
             if ":" in fact_data:
@@ -332,6 +313,14 @@ async def process_prompt_and_respond(user_text: str, websocket: WebSocket, tts):
                 memory.save_fact(key.strip(), val.strip())
         # Strip all memory tags from the spoken text
         summary_text = re.sub(r"<SAVE_FACT>.*?</SAVE_FACT>", "", summary_text, flags=re.IGNORECASE).strip()
+
+        # If LLM output ONLY an action tag with no conversational text, inject friendly phrase
+        if action_matches and not summary_text:
+            try:
+                last_target = json.loads(action_matches[-1].group(1).strip()).get("target", "application")
+                summary_text = f"Opening {last_target} for you!"
+            except Exception:
+                summary_text = "Opening requested application for you!"
 
     # Generate high-quality edge-tts neural voice audio for instant playback
     audio_b64 = await generate_edge_tts(summary_text)

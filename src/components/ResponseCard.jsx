@@ -33,7 +33,15 @@ export default function ResponseCard({
   // Word-by-word streaming effect
   useEffect(() => {
     if (!summary) return;
-    const words = summary.split(' ');
+    const cleanSummary = summary
+      .replace(/<ACTION>[\s\S]*?<\/ACTION>/gi, '')
+      .replace(/<SEARCH_WEB>[\s\S]*?<\/SEARCH_WEB>/gi, '')
+      .replace(/<SAVE_FACT>[\s\S]*?<\/SAVE_FACT>/gi, '')
+      .trim();
+
+    if (!cleanSummary) return;
+
+    const words = cleanSummary.split(' ');
     setDisplayedText('');
     setIsStreamingDone(false);
     let index = 0;
