@@ -166,10 +166,10 @@ async def save_onboarding_profile(payload: dict = Body(...)):
 
     api_mode = payload.get("apiMode", "")
     if api_mode:
-        llm_manager.save_settings({
-            "mode": api_mode,
-            "gemini_api_key": payload.get("apiKey", "") if api_mode == "free_key" else llm_manager.settings.get("gemini_api_key", "")
-        })
+        settings_update = {"mode": api_mode}
+        if payload.get("apiKey"):
+            settings_update["gemini_api_key"] = payload.get("apiKey")
+        llm_manager.save_settings(settings_update)
 
     print(f"[Onboarding Training] Saved user facts & customized AI memory for '{name}'!")
 

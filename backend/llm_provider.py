@@ -99,8 +99,17 @@ class LLMProviderManager:
             return f"Could not connect to local Ollama at {url}. Please ensure Ollama is running (`ollama run {ollama_model}`)."
             
         elif mode == "free_key":
+            # Smart provider fallback: If current provider key is empty, check if any other provider key is present
+            current_key = (self.settings.get(f"{provider}_api_key") or self.settings.get(f"{provider}_key") or "").strip()
+            if not current_key:
+                for p_name in ["nvidia", "gemini", "openai", "groq", "claude", "openrouter"]:
+                    candidate_key = (self.settings.get(f"{p_name}_api_key") or self.settings.get(f"{p_name}_key") or "").strip()
+                    if candidate_key:
+                        provider = p_name
+                        break
+
             if provider == "gemini":
-                key = self.settings.get("gemini_api_key")
+                key = self.settings.get("gemini_api_key") or self.settings.get("gemini_key")
                 if key:
                     return self._call_gemini(user_prompt, persona_ctx, memory_context, web_info, key, model)
                 return "Please enter your Google Gemini API Key in Settings, or select Built-In Free / Local Ollama model."
