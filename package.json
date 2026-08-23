@@ -27,11 +27,11 @@
       "public/**/*"
     ],
     "extraResources": [
-      "backend/**/*",
-      "audio/**/*",
-      "core/**/*",
-      "config.py",
-      "requirements.txt"
+      {
+        "from": "backend-dist/adyber-backend",
+        "to": "adyber-backend",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "icon": "public/icon.ico",
