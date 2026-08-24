@@ -235,8 +235,17 @@ class AppLauncher:
     def launch_app(target: str, query: str = "") -> bool:
         """Launches a whitelisted application securely in a background thread, or performs deep-linked web automation."""
         target_clean = target.lower().strip()
-        query_encoded = urllib.parse.quote_plus(query.strip()) if query else ""
         
+        # Extract song/search query from query parameter OR target string
+        raw_query = query.strip() if query else target_clean
+        song_search_clean = raw_query
+        for prefix in ["play song ", "play music ", "play ", "listen to ", "on youtube music", "on youtube", "on spotify", "youtube music", "yt music", "ytmusic", "spotify"]:
+            song_search_clean = song_search_clean.replace(prefix, "")
+        song_search_clean = song_search_clean.strip()
+        
+        song_query_encoded = urllib.parse.quote_plus(song_search_clean) if song_search_clean and song_search_clean not in ["music", "song", "youtube music", "yt music", "spotify"] else ""
+        query_encoded = urllib.parse.quote_plus(query.strip()) if query else song_query_encoded
+
         # Explicit website request check: user MUST say "website", " site", "site ", "www.", "http", etc.
         is_explicit_website = any(kw in target_clean for kw in ["website", " site", "site ", "www.", "http://", "https://", ".com", ".org", ".io", ".net", ".ai", ".dev", ".edu", ".gov"]) or target_clean.startswith("http") or target_clean.startswith("www")
         
@@ -265,26 +274,15 @@ class AppLauncher:
             except Exception:
                 pass
 
-        # --- STEP 2: MEDIA PLAYBACK ---
+        # --- STEP 2: MEDIA PLAYBACK & SONG SEARCH ---
         elif any(kw in target_clean for kw in ["play", "music", "song", "spotify", "youtube_music", "youtube music", "yt music", "ytmusic"]):
-            # Auto-extract song query if LLM put song name in target instead of query parameter
-            if not query_encoded:
-                song_query = target_clean
-                for sub in ["play song ", "play music ", "play ", "listen to ", "on youtube music", "on youtube", "on spotify", "youtube music", "yt music", "spotify"]:
-                    song_query = song_query.replace(sub, "")
-                song_query = song_query.strip()
-                if song_query and song_query not in ["music", "song"]:
-                    query_encoded = urllib.parse.quote_plus(song_query)
-
             spotify_path = AppLauncher._find_app_in_system("spotify")
-            ytmusic_path = AppLauncher._find_app_in_system("youtube music") or AppLauncher._find_app_in_system("yt music")
 
             if "spotify" in target_clean or (spotify_path and "youtube" not in target_clean):
-                action_url = f"spotify:search:{query_encoded}" if query_encoded else "spotify:"
-            elif ytmusic_path and "spotify" not in target_clean:
-                target_path = ytmusic_path
+                action_url = f"spotify:search:{song_query_encoded}" if song_query_encoded else "spotify:"
             else:
-                action_url = f"https://music.youtube.com/search?q={query_encoded}" if query_encoded else "https://music.youtube.com"
+                # Direct YouTube Music Song Search & Autoplay URL
+                action_url = f"https://music.youtube.com/search?q={song_query_encoded}" if song_query_encoded else "https://music.youtube.com"
 
         elif target_clean in ["youtube", "yt"]:
             action_url = f"https://www.youtube.com/results?search_query={query_encoded}" if query_encoded else "https://www.youtube.com"
@@ -298,8 +296,8 @@ class AppLauncher:
             else:
                 action_args = ["cmd.exe", "/c", "start", "", "chrome"]
 
-        # --- STEP 3: INSTALLED DESKTOP APP SCAN (HIGH PRIORITY) ---
         else:
+            # --- 3. STANDARD OS APP LAUNCHER & SYSTEM SCAN ---
             known = AppLauncher.KNOWN_APPS.get(target_clean) or AppLauncher.KNOWN_APPS.get(clean_name)
             if known:
                 if isinstance(known, str):
@@ -307,14 +305,8 @@ class AppLauncher:
                 else:
                     action_args = known
             else:
-                # Scan local disk, start menu, desktop, registry, appdata
                 target_path = AppLauncher._find_app_in_system(target_clean)
-                
-                # --- STEP 4: WEBSITE FALLBACK ONLY IF NOT INSTALLED ON LOCAL PC ---
-                if not target_path and clean_name in AppLauncher.KNOWN_WEBSITES:
-                    base_url = AppLauncher.KNOWN_WEBSITES[clean_name]
-                    action_url = f"{base_url}/search?q={query_encoded}" if query_encoded else base_url
-                elif not target_path:
+                if not target_path:
                     print(f"[OS Automation] App '{target}' not found on system indexer.")
                     return False
 
