@@ -1,50 +1,58 @@
-# Security Policy — Adyber AI Assistant
+# 🔒 Security Policy — Adyber AI Assistant
 
-## Supported Versions
-
-The following table lists the versions of Adyber AI currently supported with security updates:
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-| < 1.0   | :x:                |
+> Version: **1.0.0**  
+> Lead Developer & Maintainer: **Naitik Grover ([@NaitikGrover95](https://github.com/NaitikGrover95))**
 
 ---
 
-## Reporting a Vulnerability
+## 🛡️ Supported Versions
 
-We take the security and privacy of **Adyber AI** very seriously. If you discover a potential security vulnerability or data exposure issue, please report it responsibly.
+| Version | Security Status |
+| ------- | --------------- |
+| 1.0.x   | :white_check_mark: Supported |
+| < 1.0   | :x: End of Life |
 
-### How to Report
-- **Email**: Send a detailed report to **[nAITIKgROVER95@GMAIL.COM](mailto:nAITIKgROVER95@GMAIL.COM)**.
-- **GitHub**: You may also submit a private security advisory through the **Security** tab of this repository.
+---
 
+## 📩 Reporting a Vulnerability
+
+We prioritize the privacy and security of users of **Adyber AI**. If you discover a potential vulnerability, credential exposure risk, or security issue, please report it responsibly.
+
+### Reporting Channels
+- **Email**: Send a security report to **[nAITIKgROVER95@GMAIL.COM](mailto:nAITIKgROVER95@GMAIL.COM)**.
+- **GitHub**: Submit a private vulnerability report via the **Security** tab of the GitHub repository.
+
+### Report Details
 Please include:
-1. A description of the vulnerability and its potential impact.
-2. Steps to reproduce the issue (including any proof-of-concept scripts).
-3. Any suggested remediations or mitigations.
+1. Description of the vulnerability and its potential impact.
+2. Step-by-step reproduction instructions or proof-of-concept.
+3. Recommended remediations or security patches.
 
 ---
 
-## Preferred Response & Disclosure Timeline
+## ⏱️ Response & Disclosure SLA
 
-- **Acknowledgement**: Within 48 hours.
-- **Assessment**: Within 5 business days.
-- **Fix & Disclosure**: We aim to release a patch for verified critical vulnerabilities as quickly as possible before public disclosure.
+- **Initial Response**: Within 48 hours.
+- **Triage & Assessment**: Within 5 business days.
+- **Patch Deployment**: Security hotfixes are released immediately upon verification prior to public disclosure.
 
 ---
 
-## Security Architecture & Best Practices
+## 🔒 Security Architecture Safeguards
 
-Adyber AI is designed with privacy and security as core principles:
+Adyber AI enforces defense-in-depth security mechanisms:
 
-1. **Local-First Key Management**:
-   - API keys (Gemini, OpenAI, Groq, NVIDIA, Claude, OpenRouter) are stored exclusively on your local device in `%APPDATA%\AdyberAI\settings.json`.
-   - Keys are **never** uploaded to external servers or telemetry services.
+1. **Local-First Sensitive Storage**:
+   - API keys (Google Gemini, OpenAI, Groq, NVIDIA, Claude, OpenRouter) are saved strictly locally on the user's filesystem in `%APPDATA%\AdyberAI\settings.json`.
+   - Keys are **never** transmitted to third-party telemetry servers.
 
-2. **Loopback WebSocket Authentication**:
-   - Communication between the Electron React UI and Python backend occurs strictly over local loopback (`127.0.0.1`).
-   - Every session generates a cryptographically random per-process token (`.api_token`) to prevent unauthorized local process connections.
+2. **Loopback-Isolated WebSockets**:
+   - Communication between Electron/React and Python occurs strictly on local loopback (`127.0.0.1:8000`).
+   - Every application launch generates a cryptographically secure random token (`.api_token`) required on all WebSocket connections (`ws://127.0.0.1:8000/ws?token=...`).
 
-3. **Secure Protocol Deep-Linking**:
-   - Google Sign-In authentication uses hosted Firebase Web Auth (`https://adyber-d615d.firebaseapp.com/auth.html`) and dispatches tokenized payloads back to the app via the registered `adyber://` custom OS protocol.
+3. **Input Validation & Thread Safety**:
+   - Long-term memory modifications (`backend/memory_manager.py`) enforce string length limits, entry count caps, and strict `threading.Lock()` controls to prevent memory corruption or race conditions.
+   - Ollama local model requests (`backend/llm_provider.py`) validate endpoints to prevent SSRF vulnerabilities.
+
+4. **Secure OS Integration**:
+   - App launching & web URL routing (`backend/tools/os_automation.py`) sanitizes inputs and uses direct URL schemes to prevent shell command injection.
