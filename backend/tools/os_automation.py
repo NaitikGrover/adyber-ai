@@ -237,8 +237,8 @@ class AppLauncher:
         target_clean = target.lower().strip()
         query_encoded = urllib.parse.quote_plus(query.strip()) if query else ""
         
-        # Check if user specifically requested a website or URL
-        is_website_req = any(kw in target_clean for kw in ["website", "site", "web", "www", "http", ".com", ".org", ".io", ".net", ".ai", ".dev", ".edu", ".gov", ".in"]) or target_clean.startswith("http") or target_clean.startswith("www")
+        # Explicit website request check: user MUST say "website", " site", "site ", "www.", "http", etc.
+        is_explicit_website = any(kw in target_clean for kw in ["website", " site", "site ", "www.", "http://", "https://", ".com", ".org", ".io", ".net", ".ai", ".dev", ".edu", ".gov"]) or target_clean.startswith("http") or target_clean.startswith("www")
         
         # Normalize site/app name (e.g. "netflix website" -> "netflix", "unity site" -> "unity")
         clean_name = AppLauncher._normalize_name(target_clean)
@@ -247,9 +247,8 @@ class AppLauncher:
         action_url = None
         target_path = None
 
-        # --- 1. WEBSITE & DEFAULT BROWSER AUTOMATION ---
-        if is_website_req or clean_name in AppLauncher.KNOWN_WEBSITES:
-            # Check known websites map first
+        # --- STEP 1: EXPLICIT WEBSITE REQUESTS ---
+        if is_explicit_website:
             if clean_name in AppLauncher.KNOWN_WEBSITES:
                 base_url = AppLauncher.KNOWN_WEBSITES[clean_name]
             elif "." in target_clean and " " not in target_clean:
@@ -257,20 +256,7 @@ class AppLauncher:
             else:
                 base_url = f"https://www.{clean_name}.com"
 
-            if query_encoded:
-                if "youtube.com" in base_url or "youtube" in clean_name:
-                    if "music" in clean_name:
-                        action_url = f"https://music.youtube.com/search?q={query_encoded}"
-                    else:
-                        action_url = f"https://www.youtube.com/results?search_query={query_encoded}"
-                elif "amazon" in clean_name:
-                    action_url = f"https://www.amazon.in/s?k={query_encoded}"
-                elif "google" in clean_name or "search" in clean_name:
-                    action_url = f"https://www.google.com/search?q={query_encoded}"
-                else:
-                    action_url = f"{base_url}/search?q={query_encoded}"
-            else:
-                action_url = base_url
+            action_url = f"{base_url}/search?q={query_encoded}" if query_encoded else base_url
 
             # Save learned website domain to memory
             try:
@@ -279,26 +265,17 @@ class AppLauncher:
             except Exception:
                 pass
 
-        # --- 2. SMART MUSIC & MEDIA PLAYBACK HIERARCHY ---
+        # --- STEP 2: MEDIA PLAYBACK ---
         elif any(kw in target_clean for kw in ["play", "music", "song", "spotify", "youtube_music", "youtube music", "yt music", "ytmusic"]):
             spotify_path = AppLauncher._find_app_in_system("spotify")
             ytmusic_path = AppLauncher._find_app_in_system("youtube music") or AppLauncher._find_app_in_system("yt music")
 
             if "spotify" in target_clean or (spotify_path and "youtube" not in target_clean):
-                # Spotify is installed or explicitly requested
-                if query_encoded:
-                    action_url = f"spotify:search:{query_encoded}"
-                else:
-                    action_url = "spotify:"
+                action_url = f"spotify:search:{query_encoded}" if query_encoded else "spotify:"
             elif ytmusic_path and "spotify" not in target_clean:
-                # YouTube Music desktop app is installed
                 target_path = ytmusic_path
             else:
-                # Web fallback for music playback
-                if query_encoded:
-                    action_url = f"https://music.youtube.com/search?q={query_encoded}"
-                else:
-                    action_url = "https://music.youtube.com"
+                action_url = f"https://music.youtube.com/search?q={query_encoded}" if query_encoded else "https://music.youtube.com"
 
         elif target_clean in ["youtube", "yt"]:
             action_url = f"https://www.youtube.com/results?search_query={query_encoded}" if query_encoded else "https://www.youtube.com"
@@ -312,8 +289,8 @@ class AppLauncher:
             else:
                 action_args = ["cmd.exe", "/c", "start", "", "chrome"]
 
+        # --- STEP 3: INSTALLED DESKTOP APP SCAN (HIGH PRIORITY) ---
         else:
-            # --- 3. STANDARD OS APP LAUNCHER & SYSTEM SCAN ---
             known = AppLauncher.KNOWN_APPS.get(target_clean) or AppLauncher.KNOWN_APPS.get(clean_name)
             if known:
                 if isinstance(known, str):
@@ -321,8 +298,14 @@ class AppLauncher:
                 else:
                     action_args = known
             else:
+                # Scan local disk, start menu, desktop, registry, appdata
                 target_path = AppLauncher._find_app_in_system(target_clean)
-                if not target_path:
+                
+                # --- STEP 4: WEBSITE FALLBACK ONLY IF NOT INSTALLED ON LOCAL PC ---
+                if not target_path and clean_name in AppLauncher.KNOWN_WEBSITES:
+                    base_url = AppLauncher.KNOWN_WEBSITES[clean_name]
+                    action_url = f"{base_url}/search?q={query_encoded}" if query_encoded else base_url
+                elif not target_path:
                     print(f"[OS Automation] App '{target}' not found on system indexer.")
                     return False
 
