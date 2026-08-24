@@ -267,6 +267,15 @@ class AppLauncher:
 
         # --- STEP 2: MEDIA PLAYBACK ---
         elif any(kw in target_clean for kw in ["play", "music", "song", "spotify", "youtube_music", "youtube music", "yt music", "ytmusic"]):
+            # Auto-extract song query if LLM put song name in target instead of query parameter
+            if not query_encoded:
+                song_query = target_clean
+                for sub in ["play song ", "play music ", "play ", "listen to ", "on youtube music", "on youtube", "on spotify", "youtube music", "yt music", "spotify"]:
+                    song_query = song_query.replace(sub, "")
+                song_query = song_query.strip()
+                if song_query and song_query not in ["music", "song"]:
+                    query_encoded = urllib.parse.quote_plus(song_query)
+
             spotify_path = AppLauncher._find_app_in_system("spotify")
             ytmusic_path = AppLauncher._find_app_in_system("youtube music") or AppLauncher._find_app_in_system("yt music")
 
