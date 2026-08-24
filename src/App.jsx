@@ -6,6 +6,11 @@ import OnboardingFlow from './components/Onboarding/OnboardingFlow';
 import Dashboard from './components/Dashboard/Dashboard';
 import { logoutFromFirebase, getUserDataFromFirebase, saveUserDataToFirebase } from './firebase';
 
+// Named constants for timing values
+const WS_RECONNECT_DELAY_MS = 3000;
+const MAX_HOLD_DURATION_MS = 60_000;
+const AUTO_CLOSE_FALLBACK_MS = 2000;
+
 export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return localStorage.getItem('ady_onboarded') !== 'true';
@@ -38,21 +43,21 @@ export default function App() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(profilePayload)
-          }).catch(err => console.error("[Sync Profile Error]", err));
+          }).catch(err => console.warn("[Sync Profile Warning]", err));
 
           if (cloudData.memory) {
             fetch('http://localhost:8000/sync-user-memory', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(cloudData.memory)
-            }).catch(err => console.error("[Sync Memory Error]", err));
+            }).catch(err => console.warn("[Sync Memory Warning]", err));
           }
           if (cloudData.settings) {
             fetch('http://localhost:8000/settings', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(cloudData.settings)
-            }).catch(err => console.error("[Sync Settings Error]", err));
+            }).catch(err => console.warn("[Sync Settings Warning]", err));
           }
         }
       });
@@ -69,7 +74,6 @@ export default function App() {
 
   const [orbState, setOrbState] = useState(OrbState.IDLE);
   const [volume, setVolume] = useState(0.0);
-  const [liveText, setLiveText] = useState("");
   const [answerData, setAnswerData] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [textInput, setTextInput] = useState("");
@@ -86,7 +90,6 @@ export default function App() {
   const recognitionRef = useRef(null);
   const orbStateRef = useRef(OrbState.IDLE);
   const isHoldingKeyRef = useRef(false);
-  const accumulatedTranscriptRef = useRef('');
   const maxHoldTimerRef = useRef(null);
   const processingTimeoutRef = useRef(null);
   const currentAudioRef = useRef(null);
@@ -188,9 +191,9 @@ export default function App() {
     isHoldingKeyRef.current = false;
     clearTimeout(maxHoldTimerRef.current);
     
-    // The Python Backend is now handling the Microphone and STT physically
-    // It will send a "STATE_CHANGE: processing" WebSocket message once it finishes STT
-    // We just stop the visual mic monitor here
+    // The Python Backend is now handling the Microphone and STT physically.
+    // It will send a "STATE_CHANGE: processing" WebSocket message once it finishes STT.
+    // We just stop the visual mic monitor here.
     stopMicMonitor();
     setOrbState(OrbState.PROCESSING);
 
@@ -200,7 +203,7 @@ export default function App() {
     if (isHoldingKeyRef.current) return;
     isHoldingKeyRef.current = true;
     
-    // IMMEDIATELY INTERRUPT AI IF SHE IS SPEAKING
+    // Immediately interrupt AI if she is currently speaking
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current = null;
@@ -213,15 +216,21 @@ export default function App() {
     setIsPanelOpen(false);
     setAnswerData(null);
     startMicMonitor();
-    setLiveText("");
 
-    // 60-second safety timeout
+    // Safety timeout: auto-release after MAX_HOLD_DURATION_MS
     clearTimeout(maxHoldTimerRef.current);
     maxHoldTimerRef.current = setTimeout(() => {
-      console.log('[Push-To-Talk] Max 60s safety timeout reached -> Auto Release');
+      console.log('[Push-To-Talk] Max hold timeout reached -> Auto Release');
       stopHoldListening();
-    }, 60000);
+    }, MAX_HOLD_DURATION_MS);
   }, [startMicMonitor, stopHoldListening]);
+
+  // ── Unified text query sender (used by both follow-up pills and text input) ──
+  const sendTextQuery = useCallback((text) => {
+    if (!text?.trim() || !socketRef.current) return;
+    socketRef.current.send(JSON.stringify({ type: 'PROCESS_TEXT', text }));
+    setOrbState(OrbState.PROCESSING);
+  }, []);
 
   // ── WebSocket Connection ────────────────────────────────────────────────
   const connectWebSocket = useCallback(() => {
@@ -261,14 +270,14 @@ export default function App() {
           setIsPanelOpen(false);
         }
 
-        // Sync fresh memory to Firebase cloud storage
+        // Sync fresh memory to Firebase cloud storage (non-blocking, warn on failure)
         if (currentUser && currentUser.uid) {
           fetch('http://localhost:8000/memory')
             .then(r => r.json())
             .then(latestMem => {
               saveUserDataToFirebase(currentUser.uid, { memory: latestMem });
             })
-            .catch(() => {});
+            .catch(err => console.warn('[Cloud Memory Sync Warning]', err));
         }
 
         // Helper: transition back to idle cleanly
@@ -339,12 +348,13 @@ export default function App() {
           window.speechSynthesis.speak(utt);
 
         } else {
-          // No audio at all – auto-close after 2 s
-          setTimeout(returnToIdle, 2000);
+          // No audio at all – auto-close after fallback delay
+          setTimeout(returnToIdle, AUTO_CLOSE_FALLBACK_MS);
         }
       }
     };
-    ws.onclose = () => setTimeout(connectWebSocket, 3000);
+    // Reconnect on disconnect – intentional auto-reconnect loop
+    ws.onclose = () => setTimeout(connectWebSocket, WS_RECONNECT_DELAY_MS);
     socketRef.current = ws;
   }, [startHoldListening, stopHoldListening, stopMicMonitor, startVolumeLoop, stopVolumeLoop]);
 
@@ -368,27 +378,16 @@ export default function App() {
       if (aiAudioCtxRef.current) { aiAudioCtxRef.current.close().catch(() => {}); aiAudioCtxRef.current = null; }
       socketRef.current?.close();
     };
+  // Intentional empty dep array: this effect runs once on mount and cleans up on unmount.
+  // connectWebSocket and other callbacks are stable references via useCallback.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleTextSubmit = (e) => {
-    e.preventDefault();
-    if (!textInput.trim() || !socketRef.current) return;
-    socketRef.current.send(JSON.stringify({ type: 'PROCESS_TEXT', text: textInput }));
-    setTextInput("");
-    setOrbState(OrbState.PROCESSING);
-  };
 
   useEffect(() => {
     if (isPanelOpen) {
       window.electronAPI?.resizeWindow?.(750, 850);
     }
   }, [isPanelOpen]);
-
-  const handleFollowUp = (query) => {
-    if (!socketRef.current) return;
-    socketRef.current.send(JSON.stringify({ type: 'PROCESS_TEXT', text: query }));
-    setOrbState(OrbState.PROCESSING);
-  };
 
   useEffect(() => {
     if (showOnboarding || showDashboard) {
@@ -401,6 +400,20 @@ export default function App() {
       }
     }
   }, [showOnboarding, showDashboard]);
+
+  // ── Session Cleanup Helper ──────────────────────────────────────────────
+  // Shared by both Reset Onboarding and Logout flows
+  const clearLocalSession = () => {
+    localStorage.removeItem('ady_onboarded');
+    localStorage.removeItem('ady_user');
+    localStorage.clear();
+    sessionStorage.clear();
+    if (window.electronAPI?.clearAppSession) window.electronAPI.clearAppSession();
+    setCurrentUser(null);
+    setInitialOnboardingStep(1);
+    setShowOnboarding(true);
+    setShowDashboard(false);
+  };
 
   if (showOnboarding) {
     return <OnboardingFlow 
@@ -428,27 +441,11 @@ export default function App() {
           if (currentUser?.uid) {
             saveUserDataToFirebase(currentUser.uid, { onboarded: false }).catch(() => {});
           }
-          localStorage.removeItem('ady_onboarded');
-          localStorage.removeItem('ady_user');
-          localStorage.clear();
-          sessionStorage.clear();
-          if (window.electronAPI?.clearAppSession) window.electronAPI.clearAppSession();
-          setCurrentUser(null);
-          setInitialOnboardingStep(1);
-          setShowOnboarding(true);
-          setShowDashboard(false);
+          clearLocalSession();
         }}
         onLogout={async () => {
-          // 1. Synchronously wipe all local session keys & clear C++ Electron storage on disk
-          localStorage.removeItem('ady_onboarded');
-          localStorage.removeItem('ady_user');
-          localStorage.clear();
-          sessionStorage.clear();
-          if (window.electronAPI?.clearAppSession) window.electronAPI.clearAppSession();
-          setCurrentUser(null);
-          setInitialOnboardingStep(1);
-          setShowOnboarding(true);
-          setShowDashboard(false);
+          // 1. Synchronously wipe all local session state first for instant UI transition
+          clearLocalSession();
 
           // 2. Perform backend & Firebase session wipes asynchronously
           try {
@@ -496,8 +493,8 @@ export default function App() {
               setAnswerData(null);
               setIsPanelOpen(false);
             }} 
-            onFollowUp={handleFollowUp}
-            onTextSubmit={handleFollowUp}
+            onFollowUp={sendTextQuery}
+            onTextSubmit={sendTextQuery}
           />
         </div>
       )}

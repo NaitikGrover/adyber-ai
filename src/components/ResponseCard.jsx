@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
+// Utility: extract favicon URL for a given source URL
 function getFavicon(url) {
   try {
     const domain = new URL(url).hostname;
@@ -9,6 +10,7 @@ function getFavicon(url) {
   }
 }
 
+// Utility: extract clean domain name from a URL
 function getDomain(url) {
   try {
     return new URL(url).hostname.replace('www.', '');
@@ -16,6 +18,13 @@ function getDomain(url) {
     return 'source';
   }
 }
+
+// Module-level constant — avoids re-creating the array on every render
+const FOLLOW_UP_PILLS = [
+  "Tell me more details",
+  "Key takeaways",
+  "Explain simply"
+];
 
 export default function ResponseCard({ 
   summary, 
@@ -59,7 +68,9 @@ export default function ResponseCard({
   }, [summary]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(summary);
+    navigator.clipboard.writeText(summary).catch(err => {
+      console.warn('[Clipboard] Copy failed:', err);
+    });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -70,12 +81,6 @@ export default function ResponseCard({
     onTextSubmit(inputText);
     setInputText('');
   };
-
-  const followUpPills = [
-    "Tell me more details",
-    "Key takeaways",
-    "Explain simply"
-  ];
 
   return (
     <div className="response-card-container">
@@ -166,7 +171,7 @@ export default function ResponseCard({
       {/* Follow-up Prompts Pills */}
       {isStreamingDone && (
         <div className="response-followup-pills">
-          {followUpPills.map((pill, idx) => (
+          {FOLLOW_UP_PILLS.map((pill, idx) => (
             <button 
               key={idx} 
               className="followup-pill-btn"

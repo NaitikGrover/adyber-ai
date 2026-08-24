@@ -1,5 +1,7 @@
 const { app, BrowserWindow, globalShortcut, screen, ipcMain, Tray, Menu, nativeImage, shell, session } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const { spawn, execSync } = require('child_process');
 
 // Set official app name & AppUserModelID for Windows OS protocol prompts & notifications
 app.setName('Adyber AI');
@@ -25,6 +27,16 @@ app.commandLine.appendSwitch('use-fake-ui-for-media-stream', 'false');
 
 let mainWindow = null;
 let tray = null;
+
+// Module-scoped process handle so stopPythonBackend is accessible in will-quit
+let pyProcess = null;
+
+function stopPythonBackend() {
+  if (pyProcess) {
+    try { pyProcess.kill(); } catch (e) {}
+    pyProcess = null;
+  }
+}
 
 function createWindow() {
   const primaryDisplay = screen.getPrimaryDisplay();
@@ -69,10 +81,6 @@ function createWindow() {
     }
   });
 
-  const fs = require('fs');
-  const { spawn } = require('child_process');
-  let pyProcess = null;
-
   function startPythonBackend() {
     const appDataFolder = path.join(process.env.APPDATA || path.join(process.env.HOME || '', 'AppData', 'Roaming'), 'AdyberAI');
     try { fs.mkdirSync(appDataFolder, { recursive: true }); } catch (e) {}
@@ -104,7 +112,6 @@ function createWindow() {
       cwd = path.join(__dirname, '..');
       const backendServerPath = path.join(__dirname, '../backend/server.py');
       if (process.platform === 'win32') {
-        const { execSync } = require('child_process');
         try {
           execSync('py -3 --version', { stdio: 'ignore' });
           pyCmd = 'py';
@@ -161,13 +168,6 @@ function createWindow() {
       const catchText = `[Python start exception]: ${e.stack || e.message}\n`;
       console.error(catchText);
       logStream.write(catchText);
-    }
-  }
-
-  function stopPythonBackend() {
-    if (pyProcess) {
-      try { pyProcess.kill(); } catch (e) {}
-      pyProcess = null;
     }
   }
 

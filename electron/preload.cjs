@@ -3,9 +3,6 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   wakeUp: () => ipcRenderer.send('wake-up'),
   onTriggerListening: (callback) => ipcRenderer.on('trigger-listening', () => callback()),
-  onTriggerAutoMode: (callback) => ipcRenderer.on('trigger-auto-mode', () => callback()),
-  expandWindow: () => ipcRenderer.send('window-expand'),
-  collapseWindow: () => ipcRenderer.send('window-collapse'),
   setOnboardingMode: () => ipcRenderer.send('window-onboarding'),
   setOrbMode: () => ipcRenderer.send('window-orb'),
   windowMinimize: () => ipcRenderer.send('window-minimize'),

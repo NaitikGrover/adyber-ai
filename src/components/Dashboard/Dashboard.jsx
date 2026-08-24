@@ -115,8 +115,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
   const [apiProvider, setApiProvider]     = useState('nvidia');
   const [selectedModel, setSelectedModel] = useState('meta/llama-3.1-8b-instruct');
   const [geminiKey, setGeminiKey]         = useState('');
-  const [claudeKey, setClaudeKey]         = useState('');
-  const [openrouterKey, setOpenrouterKey] = useState('');
   const [openaiKey, setOpenaiKey]         = useState('');
   const [groqKey, setGroqKey]             = useState('');
   const [nvidiaKey, setNvidiaKey]         = useState('');
@@ -152,8 +150,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
       if (s.provider)           setApiProvider(s.provider);
       if (s.model)              setSelectedModel(s.model);
       if (s.gemini_api_key)     setGeminiKey(s.gemini_api_key);
-      if (s.claude_api_key)     setClaudeKey(s.claude_api_key);
-      if (s.openrouter_api_key) setOpenrouterKey(s.openrouter_api_key);
       if (s.openai_api_key)     setOpenaiKey(s.openai_api_key);
       if (s.groq_api_key)       setGroqKey(s.groq_api_key);
       if (s.nvidia_api_key)     setNvidiaKey(s.nvidia_api_key);
@@ -199,8 +195,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         provider: apiProvider,
         model: selectedModel,
         gemini_api_key: geminiKey,
-        claude_api_key: claudeKey,
-        openrouter_api_key: openrouterKey,
         openai_api_key: openaiKey,
         groq_api_key: groqKey,
         nvidia_api_key: nvidiaKey,
@@ -217,8 +211,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
   const handleResetEngine = async () => {
     setEngineStatus('saving');
     setGeminiKey('');
-    setClaudeKey('');
-    setOpenrouterKey('');
     setOpenaiKey('');
     setGroqKey('');
     setNvidiaKey('');
@@ -231,8 +223,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
       provider: 'nvidia',
       model: 'meta/llama-3.1-8b-instruct',
       gemini_api_key: '',
-      claude_api_key: '',
-      openrouter_api_key: '',
       openai_api_key: '',
       groq_api_key: '',
       nvidia_api_key: '',
@@ -300,7 +290,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src={logoImg} alt="adyber" style={{ width: 18, height: 18, objectFit: 'contain', opacity: 0.9 }} />
           <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: '-0.3px' }}>adyber</span>
-          <span style={{ fontSize: 10, color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', padding: '2px 8px', borderRadius: 20, fontFamily: 'monospace' }}>v1.1.0</span>
+          <span style={{ fontSize: 10, color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', padding: '2px 8px', borderRadius: 20, fontFamily: 'monospace' }}>v1.0.0</span>
         </div>
         <div style={{ display: 'flex', gap: 20, WebkitAppRegion: 'no-drag' }}>
           {[
@@ -514,15 +504,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                     </>
                   )}
 
-                  {apiMode === 'adyber_free' && (
-                    <Field label="Built-In Model Selection">
-                      <FocusInput as="select" style={selectBase} value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
-                        <option value="gpt-4o-mini">GPT-4o Mini (Default Built-In)</option>
-                        <option value="llama-3-70b">Llama 3 70B (Built-In)</option>
-                        <option value="claude-3-haiku">Claude 3 Haiku (Built-In)</option>
-                      </FocusInput>
-                    </Field>
-                  )}
+
 
                   {apiMode === 'local_ollama' && (
                     <>

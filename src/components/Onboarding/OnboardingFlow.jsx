@@ -286,6 +286,67 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
   const nextStep = () => setStep(prev => prev + 1);
   const prevStep = () => setStep(prev => prev - 1);
 
+  // Extracted from the inline onClick in the final step to keep JSX clean
+  const handleFinishSetup = () => {
+    const targetUid = data.userUid || ('user_' + Date.now());
+    const payload = {
+      uid: targetUid,
+      userUid: targetUid,
+      username: data.username || 'User',
+      name: data.username || 'User',
+      userEmail: data.userEmail || '',
+      userPhoto: data.userPhoto || '',
+      profileDescription: data.profileDescription || '',
+      shortcutKey: data.shortcutKey || 'Ctrl+Shift',
+      language: data.language || 'English',
+      source: data.source || '',
+      apiMode: data.apiMode || 'free_key',
+      apiKey: data.apiKey || '',
+      onboarded: true
+    };
+
+    // 1. Immediately complete onboarding so UI transitions with 0ms delay
+    onComplete(payload);
+
+    // 2. Fire-and-forget cloud & backend saves in background (non-blocking)
+    Promise.allSettled([
+      saveUserToFirebase(payload),
+      saveUserDataToFirebase(targetUid, {
+        onboarded: true,
+        profile: {
+          name: payload.name,
+          username: payload.username,
+          userEmail: payload.userEmail,
+          userPhoto: payload.userPhoto,
+          profileDescription: payload.profileDescription,
+          shortcutKey: payload.shortcutKey,
+          language: payload.language,
+          source: payload.source
+        },
+        settings: {
+          mode: payload.apiMode,
+          groq_key: payload.apiKey,
+          openai_key: payload.apiKey,
+          gemini_key: payload.apiKey,
+          ollama_url: "http://localhost:11434",
+          ollama_model: "llama3",
+          hotkey: payload.shortcutKey
+        },
+        memory: {
+          user_name: payload.name,
+          ai_name: "Ady",
+          facts: { "User Profile/About": payload.profileDescription },
+          conversation_history: []
+        }
+      }),
+      fetch('http://localhost:8000/save-onboarding-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+    ]).catch(err => console.warn("[Setup Background Save Notice]", err));
+  };
+
   const processUserAuth = async (user) => {
     if (!user || !user.uid) return false;
     setIsSigningIn(true);
@@ -539,7 +600,7 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
           </Layout>
         );
 
-      case 7:
+      case 7: {
         const displayedKeys = isRecordingKey
           ? recordedCombo
           : (data.shortcutKey ? data.shortcutKey.split('+') : ['Ctrl', 'Shift']);
@@ -577,6 +638,7 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
             <ActionRow onNext={nextStep} onPrev={prevStep} />
           </Layout>
         );
+      }
 
       case 8:
         return (
@@ -592,65 +654,7 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
 
             {/* Button pinned below center */}
             <div className="absolute z-10" style={{ top: 'calc(50% + 80px)' }}>
-              <Button variant="primary" className="w-56 font-bold" onClick={() => {
-                const targetUid = data.userUid || ('user_' + Date.now());
-                const payload = {
-                  uid: targetUid,
-                  userUid: targetUid,
-                  username: data.username || 'User',
-                  name: data.username || 'User',
-                  userEmail: data.userEmail || '',
-                  userPhoto: data.userPhoto || '',
-                  profileDescription: data.profileDescription || '',
-                  shortcutKey: data.shortcutKey || 'Ctrl+Shift',
-                  language: data.language || 'English',
-                  source: data.source || '',
-                  apiMode: data.apiMode || 'free_key',
-                  apiKey: data.apiKey || '',
-                  onboarded: true
-                };
-
-                // 1. Immediately complete onboarding so UI transitions with 0ms delay
-                onComplete(payload);
-
-                // 2. Fire-and-forget cloud & backend saves in background (non-blocking)
-                Promise.allSettled([
-                  saveUserToFirebase(payload),
-                  saveUserDataToFirebase(targetUid, {
-                    onboarded: true,
-                    profile: {
-                      name: payload.name,
-                      username: payload.username,
-                      userEmail: payload.userEmail,
-                      userPhoto: payload.userPhoto,
-                      profileDescription: payload.profileDescription,
-                      shortcutKey: payload.shortcutKey,
-                      language: payload.language,
-                      source: payload.source
-                    },
-                    settings: {
-                      mode: payload.apiMode,
-                      groq_key: payload.apiKey,
-                      openai_key: payload.apiKey,
-                      gemini_key: payload.apiKey,
-                      ollama_url: "http://localhost:11434",
-                      ollama_model: "llama3",
-                      hotkey: payload.shortcutKey
-                    },
-                    memory: {
-                      user_name: payload.name,
-                      ai_name: "Ady",
-                      facts: { "User Profile/About": payload.profileDescription },
-                      conversation_history: []
-                    }
-                  }),
-                  fetch('http://localhost:8000/save-onboarding-profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                  })
-                ]).catch(err => console.warn("[Setup Background Save Notice]", err));
-              }}>Finish Setup</Button>
+              <Button variant="primary" className="w-56 font-bold" onClick={handleFinishSetup}>Finish Setup</Button>
             </div>
           </div>
         );
