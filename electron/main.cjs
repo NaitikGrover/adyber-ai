@@ -3,6 +3,18 @@ const path = require('path');
 const fs = require('fs');
 const { spawn, execSync } = require('child_process');
 
+// electron-updater — only activated in packaged production builds
+let autoUpdater = null;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+  // Log updater events to backend.log for debugging
+  autoUpdater.logger = require('electron').nativeTheme ? null : null;
+  autoUpdater.autoDownload = false;      // Let user choose when to download
+  autoUpdater.autoInstallOnAppQuit = true; // Install on next quit if downloaded
+} catch(e) {
+  console.warn('[AutoUpdater] electron-updater not available:', e.message);
+}
+
 // Set official app name & AppUserModelID for Windows OS protocol prompts & notifications
 app.setName('Adyber AI');
 if (process.platform === 'win32') {
@@ -69,6 +81,16 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
+
+    // --- AUTO UPDATER: silent check on startup (packaged builds only) ---
+    if (app.isPackaged && autoUpdater) {
+      // Small delay so the window is fully painted before checking
+      setTimeout(() => {
+        autoUpdater.checkForUpdates().catch(err => {
+          console.warn('[AutoUpdater] Check failed on startup:', err.message);
+        });
+      }, 3000);
+    }
   });
 
   Menu.setApplicationMenu(null);
@@ -78,6 +100,93 @@ function createWindow() {
     if (mainWindow) {
       mainWindow.setAlwaysOnTop(true, 'screen-saver');
       mainWindow.showInactive();
+    }
+  });
+
+  // ── AUTO-UPDATER IPC ────────────────────────────────────────────────────────
+  // Forward updater events to the renderer (Dashboard)
+  if (autoUpdater) {
+    autoUpdater.on('update-available', (info) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-available', {
+          version: info.version,
+          releaseNotes: info.releaseNotes || '',
+          releaseDate: info.releaseDate || ''
+        });
+      }
+      console.log(`[AutoUpdater] Update available: v${info.version}`);
+    });
+
+    autoUpdater.on('update-not-available', () => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-not-available');
+      }
+      console.log('[AutoUpdater] App is up to date.');
+    });
+
+    autoUpdater.on('download-progress', (progress) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('download-progress', {
+          percent: Math.floor(progress.percent),
+          transferred: progress.transferred,
+          total: progress.total,
+          bytesPerSecond: progress.bytesPerSecond
+        });
+        // Also show in taskbar progress bar
+        mainWindow.setProgressBar(progress.percent / 100);
+      }
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-downloaded', { version: info.version });
+        mainWindow.setProgressBar(-1); // Clear taskbar progress
+      }
+      console.log(`[AutoUpdater] Update v${info.version} downloaded. Ready to install.`);
+    });
+
+    autoUpdater.on('error', (err) => {
+      if (mainWindow) {
+        mainWindow.webContents.send('update-error', {
+          message: err.message || 'Unknown update error'
+        });
+        mainWindow.setProgressBar(-1);
+      }
+      console.error('[AutoUpdater] Error:', err.message);
+    });
+  }
+
+  // IPC: renderer triggers download
+  ipcMain.on('download-update', () => {
+    if (app.isPackaged && autoUpdater) {
+      autoUpdater.downloadUpdate().catch(err => {
+        console.error('[AutoUpdater] Download failed:', err.message);
+        if (mainWindow) {
+          mainWindow.webContents.send('update-error', { message: err.message });
+        }
+      });
+    }
+  });
+
+  // IPC: renderer triggers install & restart
+  ipcMain.on('quit-and-install', () => {
+    if (app.isPackaged && autoUpdater) {
+      autoUpdater.quitAndInstall(false, true);
+    }
+  });
+
+  // IPC: renderer manually triggers an update check
+  ipcMain.on('check-for-updates', () => {
+    if (app.isPackaged && autoUpdater) {
+      autoUpdater.checkForUpdates().catch(err => {
+        console.warn('[AutoUpdater] Manual check failed:', err.message);
+        if (mainWindow) {
+          mainWindow.webContents.send('update-error', { message: err.message });
+        }
+      });
+    } else if (!app.isPackaged && mainWindow) {
+      // In dev mode — simulate a "up to date" response so the UI can be tested
+      mainWindow.webContents.send('update-not-available');
     }
   });
 

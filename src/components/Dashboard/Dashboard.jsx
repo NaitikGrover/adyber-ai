@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import logoImg from '/logo.png';
 import { saveUserDataToFirebase } from '../../firebase';
 
+const APP_VERSION = '1.0.0'; // Keep in sync with package.json version
+
 const C = {
   bg:         '#0b0b0b',
   surface:    '#141414',
@@ -123,6 +125,12 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
   const [memoryStatus, setMemoryStatus]   = useState('');
   const [memoryData, setMemoryData]       = useState(null);
 
+  // ── Auto-Updater state ────────────────────────────────────────────────────
+  // States: 'idle' | 'checking' | 'up-to-date' | 'available' | 'downloading' | 'downloaded' | 'error'
+  const [updateStatus, setUpdateStatus]   = useState('idle');
+  const [updateInfo, setUpdateInfo]       = useState(null);   // { version, releaseNotes }
+  const [downloadProgress, setDownloadProgress] = useState(0); // 0-100
+
   useEffect(() => {
     if (activeTab === 'memory') {
       const loadMemory = () => {
@@ -156,6 +164,39 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
       if (s.ollama_url)         setOllamaUrl(s.ollama_url);
     }).catch(() => {});
   }, [user]);
+
+  // Subscribe to auto-updater IPC events from Electron main process
+  useEffect(() => {
+    const api = window.electronAPI;
+    if (!api) return;
+
+    const cleanupFns = [
+      api.onUpdateAvailable?.((data) => {
+        setUpdateInfo(data);
+        setUpdateStatus('available');
+      }),
+      api.onUpdateNotAvailable?.(() => {
+        setUpdateStatus('up-to-date');
+        setTimeout(() => setUpdateStatus('idle'), 4000);
+      }),
+      api.onDownloadProgress?.((data) => {
+        setDownloadProgress(data.percent || 0);
+        setUpdateStatus('downloading');
+      }),
+      api.onUpdateDownloaded?.((data) => {
+        setUpdateInfo(prev => ({ ...prev, ...data }));
+        setUpdateStatus('downloaded');
+        setDownloadProgress(100);
+      }),
+      api.onUpdateError?.((data) => {
+        console.error('[Update Error]', data.message);
+        setUpdateStatus('error');
+        setTimeout(() => setUpdateStatus('idle'), 5000);
+      }),
+    ].filter(Boolean);
+
+    return () => cleanupFns.forEach(fn => typeof fn === 'function' && fn());
+  }, []);
 
   const handleSaveProfile = async () => {
     setSaveStatus('saving');
@@ -280,6 +321,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     { id: 'hotkey',  label: 'Shortcut Keys',       accent: '#60a5fa', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 0121 9z"/> },
     { id: 'engine',  label: 'AI Engine & Models',  accent: '#c084fc', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/> },
     { id: 'memory',  label: 'AI Memory',            accent: '#fb923c', icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></> },
+    { id: 'updates', label: 'App Updates',          accent: '#38bdf8', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/> },
   ];
 
   return (
@@ -600,6 +642,160 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                     </div>
                   </div>
                 )}
+              </>
+            )}
+
+            {/* Updates Tab */}
+            {activeTab === 'updates' && (
+              <>
+                <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.4px' }}>App Updates</h2>
+                <p style={{ fontSize: 12, color: C.textSub, marginBottom: 32 }}>Keep Adyber up to date with the latest features, fixes, and improvements.</p>
+
+                {/* Current version card */}
+                <Card>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 13, color: C.textSub, marginBottom: 6 }}>Installed Version</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-1px' }}>v{APP_VERSION}</span>
+                        {updateStatus === 'up-to-date' && (
+                          <span style={{ fontSize: 11, color: '#34d399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
+                            ✓ Up to date
+                          </span>
+                        )}
+                        {updateStatus === 'available' && updateInfo?.version && (
+                          <span style={{ fontSize: 11, color: '#38bdf8', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
+                            ↑ v{updateInfo.version} available
+                          </span>
+                        )}
+                        {updateStatus === 'downloaded' && (
+                          <span style={{ fontSize: 11, color: '#a78bfa', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.25)', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
+                            ✓ Ready to install
+                          </span>
+                        )}
+                        {updateStatus === 'error' && (
+                          <span style={{ fontSize: 11, color: C.danger, background: C.dangerBg, border: ('1px solid ' + C.dangerBdr), padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
+                            ✗ Update failed
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
+                        Adyber AI Desktop — NaitikGrover/adyber-ai
+                      </div>
+                    </div>
+
+                    {/* Action button — changes based on state */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+                      {(updateStatus === 'idle' || updateStatus === 'up-to-date' || updateStatus === 'error') && (
+                        <PrimaryBtn onClick={() => {
+                          setUpdateStatus('checking');
+                          window.electronAPI?.checkForUpdates?.();
+                        }}>
+                          {updateStatus === 'checking' ? 'Checking...' : 'Check for Updates'}
+                        </PrimaryBtn>
+                      )}
+
+                      {updateStatus === 'checking' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.textSub, fontSize: 13 }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                            style={{ animation: 'spin 1s linear infinite' }}>
+                            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                          </svg>
+                          Checking...
+                        </div>
+                      )}
+
+                      {updateStatus === 'available' && (
+                        <PrimaryBtn onClick={() => {
+                          window.electronAPI?.downloadUpdate?.();
+                          setUpdateStatus('downloading');
+                          setDownloadProgress(0);
+                        }}>
+                          Download & Install
+                        </PrimaryBtn>
+                      )}
+
+                      {updateStatus === 'downloading' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#38bdf8', fontSize: 13, fontWeight: 600 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                            style={{ animation: 'spin 1s linear infinite' }}>
+                            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                          </svg>
+                          Downloading...
+                        </div>
+                      )}
+
+                      {updateStatus === 'downloaded' && (
+                        <PrimaryBtn onClick={() => window.electronAPI?.quitAndInstall?.()}>
+                          🔄 Restart Now
+                        </PrimaryBtn>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Download progress bar */}
+                  {updateStatus === 'downloading' && (
+                    <div style={{ marginTop: 24, paddingTop: 20, borderTop: ('1px solid ' + C.border) }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <span style={{ fontSize: 12, color: C.textSub }}>Downloading update...</span>
+                        <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 700, fontFamily: 'monospace' }}>{downloadProgress}%</span>
+                      </div>
+                      <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${downloadProgress}%`,
+                          background: 'linear-gradient(90deg, #38bdf8, #818cf8)',
+                          borderRadius: 4,
+                          transition: 'width 0.3s ease',
+                          boxShadow: '0 0 10px rgba(56,189,248,0.5)'
+                        }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Post-download install message */}
+                  {updateStatus === 'downloaded' && updateInfo?.version && (
+                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: ('1px solid ' + C.border) }}>
+                      <div style={{ fontSize: 12, color: '#a78bfa', lineHeight: 1.6 }}>
+                        <strong style={{ color: '#fff' }}>v{updateInfo.version}</strong> is ready to install.
+                        Click <strong>Restart Now</strong> to apply the update instantly.
+                        Your settings and memory are preserved.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Update available release notes */}
+                  {updateStatus === 'available' && updateInfo?.version && (
+                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: ('1px solid ' + C.border) }}>
+                      <div style={{ fontSize: 12, color: C.textSub, marginBottom: 8 }}>What's new in <span style={{ color: '#38bdf8', fontWeight: 700 }}>v{updateInfo.version}</span></div>
+                      {updateInfo.releaseNotes ? (
+                        <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.7, maxHeight: 100, overflow: 'auto' }}>
+                          {typeof updateInfo.releaseNotes === 'string'
+                            ? updateInfo.releaseNotes.replace(/<[^>]+>/g, '').trim()
+                            : 'See GitHub releases for full changelog.'}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: C.textSub }}>
+                          <a href="https://github.com/NaitikGrover/adyber-ai/releases"
+                            target="_blank" rel="noreferrer"
+                            style={{ color: '#38bdf8', textDecoration: 'none' }}>
+                            View changelog on GitHub →
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Card>
+
+                {/* Info note */}
+                <div style={{ marginTop: 24, padding: '14px 18px', background: 'rgba(56,189,248,0.04)', border: '1px solid rgba(56,189,248,0.12)', borderRadius: 12 }}>
+                  <div style={{ fontSize: 12, color: C.textSub, lineHeight: 1.6 }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 600 }}>How updates work:</span> Adyber automatically checks for updates when you open the app.
+                    Updates are downloaded in the background and installed when you restart. Your AI memory, settings, and API keys are never affected.
+                  </div>
+                </div>
+
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
               </>
             )}
 

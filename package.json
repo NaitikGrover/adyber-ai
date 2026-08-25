@@ -30,7 +30,9 @@
       {
         "from": "backend-dist/adyber-backend",
         "to": "adyber-backend",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
@@ -51,9 +53,15 @@
       "installerIcon": "public/icon.ico",
       "uninstallerIcon": "public/icon.ico",
       "installerHeaderIcon": "public/icon.ico"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "NaitikGrover",
+      "repo": "adyber-ai"
     }
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "firebase": "^12.17.1",
     "lucide-react": "^0.344.0",
     "orb-ui": "^0.7.0",
