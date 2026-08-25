@@ -84,12 +84,12 @@ function createWindow() {
 
     // --- AUTO UPDATER: silent check on startup (packaged builds only) ---
     if (app.isPackaged && autoUpdater) {
-      // Small delay so the window is fully painted before checking
+      // Give the app 8s to fully settle + network to stabilize before checking
       setTimeout(() => {
         autoUpdater.checkForUpdates().catch(err => {
           console.warn('[AutoUpdater] Check failed on startup:', err.message);
         });
-      }, 3000);
+      }, 8000);
     }
   });
 
@@ -174,6 +174,9 @@ function createWindow() {
       autoUpdater.quitAndInstall(false, true);
     }
   });
+
+  // IPC: expose real app version to renderer
+  ipcMain.handle('get-app-version', () => app.getVersion());
 
   // IPC: renderer manually triggers an update check
   ipcMain.on('check-for-updates', () => {

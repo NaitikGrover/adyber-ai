@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import logoImg from '/logo.png';
 import { saveUserDataToFirebase } from '../../firebase';
 
-const APP_VERSION = '1.0.0'; // Keep in sync with package.json version
-
 const C = {
   bg:         '#0b0b0b',
   surface:    '#141414',
@@ -126,10 +124,17 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
   const [memoryData, setMemoryData]       = useState(null);
 
   // ── Auto-Updater state ────────────────────────────────────────────────────
-  // States: 'idle' | 'checking' | 'up-to-date' | 'available' | 'downloading' | 'downloaded' | 'error'
+  const [appVersion, setAppVersion]       = useState('...');
   const [updateStatus, setUpdateStatus]   = useState('idle');
-  const [updateInfo, setUpdateInfo]       = useState(null);   // { version, releaseNotes }
-  const [downloadProgress, setDownloadProgress] = useState(0); // 0-100
+  const [updateInfo, setUpdateInfo]       = useState(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+
+  // Load real app version from Electron
+  useEffect(() => {
+    window.electronAPI?.getAppVersion?.().then(v => {
+      if (v) setAppVersion(v);
+    }).catch(() => setAppVersion('1.0.0'));
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'memory') {
@@ -189,9 +194,10 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         setDownloadProgress(100);
       }),
       api.onUpdateError?.((data) => {
-        console.error('[Update Error]', data.message);
+        console.error('[Update Error]', data?.message);
+        setUpdateErrorMsg(data?.message || 'Update check failed');
         setUpdateStatus('error');
-        setTimeout(() => setUpdateStatus('idle'), 5000);
+        setTimeout(() => setUpdateStatus('idle'), 6000);
       }),
     ].filter(Boolean);
 
@@ -657,7 +663,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                     <div>
                       <div style={{ fontSize: 13, color: C.textSub, marginBottom: 6 }}>Installed Version</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-1px' }}>v{APP_VERSION}</span>
+                        <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-1px' }}>v{appVersion}</span>
                         {updateStatus === 'up-to-date' && (
                           <span style={{ fontSize: 11, color: '#34d399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
                             ✓ Up to date

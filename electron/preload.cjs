@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onGoogleAuthSuccess: (callback) => ipcRenderer.on('google-auth-success', (_event, data) => callback(data)),
   resizeWindow: (width, height) => ipcRenderer.send('window-resize', width, height),
   getApiToken: () => ipcRenderer.invoke('get-api-token'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 
   // ── Auto-Updater API ──────────────────────────────────────────────────────
   // Trigger an update check manually
