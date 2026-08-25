@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import logoImg from '/logo.png';
 import { saveUserDataToFirebase } from '../../firebase';
 
@@ -123,10 +123,27 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
   const [memoryStatus, setMemoryStatus]   = useState('');
   const [memoryData, setMemoryData]       = useState(null);
 
+  // ── Profile Settings Popover ──────────────────────────────────────────────
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setShowProfileMenu(false);
+      }
+    }
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showProfileMenu]);
+
   // ── Auto-Updater state ────────────────────────────────────────────────────
   const [appVersion, setAppVersion]       = useState('...');
   const [updateStatus, setUpdateStatus]   = useState('idle');
   const [updateInfo, setUpdateInfo]       = useState(null);
+  const [updateErrorMsg, setUpdateErrorMsg] = useState('');
   const [downloadProgress, setDownloadProgress] = useState(0);
 
   // Load real app version from Electron
@@ -331,103 +348,242 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
   ];
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: C.bg, display: 'flex', flexDirection: 'column', color: C.text, fontFamily: "'Inter', system-ui, sans-serif", overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100vh', background: C.bg, display: 'flex', color: C.text, fontFamily: "'Inter', system-ui, sans-serif", overflow: 'hidden', position: 'relative' }}>
 
-      {/* Titlebar */}
-      <div style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', borderBottom: ('1px solid ' + C.border), flexShrink: 0, WebkitAppRegion: 'drag', zIndex: 100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <img src={logoImg} alt="adyber" style={{ width: 18, height: 18, objectFit: 'contain', opacity: 0.9 }} />
-          <span style={{ fontWeight: 800, fontSize: 13, letterSpacing: '-0.3px' }}>adyber</span>
-          <span style={{ fontSize: 10, color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', padding: '2px 8px', borderRadius: 20, fontFamily: 'monospace' }}>v1.0.0</span>
-        </div>
-        <div style={{ display: 'flex', gap: 20, WebkitAppRegion: 'no-drag' }}>
-          {[
-            { fn: () => window.electronAPI?.windowMinimize(), d: 'M20 12H4', hover: '#fff' },
-            { fn: () => window.electronAPI?.windowMaximize(), d: 'M4 4h16v16H4z', hover: '#fff' },
-            { fn: () => window.electronAPI?.windowClose(),    d: 'M6 18L18 6M6 6l12 12', hover: '#f87171' },
-          ].map((btn, i) => (
-            <button key={i} onClick={btn.fn} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', padding: 4, display: 'flex', transition: 'color 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.color = btn.hover}
-              onMouseLeave={e => e.currentTarget.style.color = C.textMuted}
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d={btn.d}/></svg>
-            </button>
-          ))}
-        </div>
+      {/* Floating Window Controls (Top-Right, Seamless without border line) */}
+      <div style={{ position: 'absolute', top: 14, right: 20, display: 'flex', gap: 16, zIndex: 100, WebkitAppRegion: 'no-drag' }}>
+        {[
+          { fn: () => window.electronAPI?.windowMinimize(), d: 'M20 12H4', hover: '#fff' },
+          { fn: () => window.electronAPI?.windowMaximize(), d: 'M4 4h16v16H4z', hover: '#fff' },
+          { fn: () => window.electronAPI?.windowClose(),    d: 'M6 18L18 6M6 6l12 12', hover: '#f87171' },
+        ].map((btn, i) => (
+          <button key={i} onClick={btn.fn} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', padding: 4, display: 'flex', transition: 'color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.color = btn.hover}
+            onMouseLeave={e => e.currentTarget.style.color = C.textMuted}
+          >
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d={btn.d}/></svg>
+          </button>
+        ))}
       </div>
 
-      {/* Body */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      {/* Drag Area Bar for Top Window Movement */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 120, height: 42, WebkitAppRegion: 'drag', zIndex: 90 }} />
 
-        {/* Sidebar */}
-        <div style={{ width: 224, borderRight: ('1px solid ' + C.border), display: 'flex', flexDirection: 'column', padding: '20px 14px', flexShrink: 0 }}>
-          {/* User badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: C.surfaceAlt, border: ('1px solid ' + C.borderAlt), borderRadius: 14, marginBottom: 24 }}>
-            {user?.userPhoto
-              ? <img src={user.userPhoto} alt="avatar" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-              : <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#222', border: ('1px solid ' + C.border), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                  {(name || 'U').charAt(0).toUpperCase()}
-                </div>
-            }
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name || 'User'}</div>
-              <div style={{ fontSize: 10, color: C.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email || 'Adyber AI'}</div>
-            </div>
+      {/* Sidebar */}
+      <div style={{ width: 236, borderRight: ('1px solid ' + C.border), display: 'flex', flexDirection: 'column', padding: '18px 14px', flexShrink: 0, height: '100vh', boxSizing: 'border-box', position: 'relative', zIndex: 95 }}>
+        
+        {/* Brand Header (Seamless, Top Left) */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 24px 8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img src={logoImg} alt="adyber" style={{ width: 20, height: 20, objectFit: 'contain' }} />
+            <span style={{ fontWeight: 800, fontSize: 14, letterSpacing: '-0.3px', color: '#fff' }}>adyber</span>
           </div>
-
-          {/* Nav */}
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-            {navItems.map(item => {
-              const active = activeTab === item.id;
-              return (
-                <button key={item.id} onClick={() => setActiveTab(item.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: active ? C.surfaceAlt : 'transparent', border: ('1px solid ' + (active ? C.borderAlt : 'transparent')), borderRadius: 10, cursor: 'pointer', textAlign: 'left', color: active ? '#f1f5f9' : C.textSub, fontSize: 12, fontWeight: active ? 600 : 500, transition: 'all 0.15s', fontFamily: 'inherit' }}
-                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.surfaceAlt; e.currentTarget.style.color = '#ccc'; }}}
-                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.textSub; }}}
-                >
-                  <svg width="15" height="15" fill="none" stroke={active ? item.accent : C.textSub} viewBox="0 0 24 24">{item.icon}</svg>
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Bottom */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 16, borderTop: ('1px solid ' + C.border) }}>
-            {onClose && (
-              <button onClick={onClose} style={{ background: C.accent, color: '#000', border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 11, fontWeight: 700, cursor: 'pointer', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'opacity 0.15s', fontFamily: 'inherit' }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.85'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
-                Floating AI Pill
-              </button>
-            )}
-            {onResetOnboarding && (
-              <button onClick={onResetOnboarding} style={{ background: C.surfaceAlt, color: C.textSub, border: ('1px solid ' + C.border), borderRadius: 10, padding: '8px 0', fontSize: 11, fontWeight: 500, cursor: 'pointer', width: '100%', transition: 'all 0.15s', fontFamily: 'inherit' }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#f1f5f9'; e.currentTarget.style.borderColor = '#444'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = C.textSub; e.currentTarget.style.borderColor = C.border; }}>
-                Reset Onboarding
-              </button>
-            )}
-            {onLogout && (
-              <button onClick={onLogout} style={{ background: 'none', border: 'none', color: C.danger, fontSize: 11, fontWeight: 500, cursor: 'pointer', padding: '4px 0', transition: 'color 0.15s', fontFamily: 'inherit' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#fca5a5'} onMouseLeave={e => e.currentTarget.style.color = C.danger}>
-                Sign Out
-              </button>
-            )}
-          </div>
+          <span style={{ fontSize: 10, color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', padding: '2px 8px', borderRadius: 20, fontFamily: 'monospace', fontWeight: 600 }}>
+            v{appVersion}
+          </span>
         </div>
 
-        {/* Main Content */}
-        <div style={{ flex: 1, padding: '40px 48px', overflowY: 'auto', minWidth: 0 }}>
-          <div style={{ maxWidth: 480 }}>
+        {/* Nav Items */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, overflowY: 'auto' }}>
+          {navItems.map(item => {
+            const active = activeTab === item.id;
+            return (
+              <button key={item.id} onClick={() => setActiveTab(item.id)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: active ? C.surfaceAlt : 'transparent', border: ('1px solid ' + (active ? C.borderAlt : 'transparent')), borderRadius: 10, cursor: 'pointer', textAlign: 'left', color: active ? '#f1f5f9' : C.textSub, fontSize: 12, fontWeight: active ? 600 : 500, transition: 'all 0.15s', fontFamily: 'inherit' }}
+                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.surfaceAlt; e.currentTarget.style.color = '#ccc'; }}}
+                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.textSub; }}}
+              >
+                <svg width="15" height="15" fill="none" stroke={active ? item.accent : C.textSub} viewBox="0 0 24 24">{item.icon}</svg>
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
 
-            {/* Profile Tab */}
-            {activeTab === 'profile' && (
-              <>
-                <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.4px' }}>Profile & AI Persona</h2>
-                <p style={{ fontSize: 12, color: C.textSub, marginBottom: 32 }}>Customize your profile so Adyber knows who you are.</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  <Field label="Your Name">
+        {/* Profile Section (Moved to Bottom with Popover Popup on Click) */}
+        <div style={{ position: 'relative', marginTop: 'auto', paddingTop: 12 }} ref={profileMenuRef}>
+          
+          {/* Profile Settings Popover Popup */}
+          {showProfileMenu && (
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: 0,
+              right: 0,
+              marginBottom: 10,
+              background: '#161616',
+              border: '1px solid #2e2e2e',
+              borderRadius: 14,
+              boxShadow: '0 16px 40px rgba(0,0,0,0.7)',
+              padding: 6,
+              zIndex: 200,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              animation: 'popoverIn 0.15s ease-out'
+            }}>
+              
+              {/* Profile Overview in Popup */}
+              <div style={{ padding: '10px 12px', borderBottom: '1px solid #242424', marginBottom: 4 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {name || 'User'}
+                </div>
+                <div style={{ fontSize: 11, color: C.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>
+                  {email || 'Account Settings'}
+                </div>
+              </div>
+
+              {/* Action: Open Floating AI Pill */}
+              {onClose && (
+                <button
+                  onClick={() => { setShowProfileMenu(false); onClose(); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#e2e8f0',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.15s',
+                    fontFamily: 'inherit'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#222'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', flexShrink: 0 }} />
+                  <span>Floating AI Pill</span>
+                </button>
+              )}
+
+              {/* Action: Reset Onboarding */}
+              {onResetOnboarding && (
+                <button
+                  onClick={() => { setShowProfileMenu(false); onResetOnboarding(); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    background: 'transparent',
+                    border: 'none',
+                    color: C.textSub,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s',
+                    fontFamily: 'inherit'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = '#222'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.textSub; }}
+                >
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Reset Onboarding</span>
+                </button>
+              )}
+
+              {/* Divider */}
+              {onLogout && <div style={{ height: 1, background: '#242424', margin: '4px 0' }} />}
+
+              {/* Action: Sign Out */}
+              {onLogout && (
+                <button
+                  onClick={() => { setShowProfileMenu(false); onLogout(); }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    background: 'transparent',
+                    border: 'none',
+                    color: C.danger,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s',
+                    fontFamily: 'inherit'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.color = '#fca5a5'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.danger; }}
+                >
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span>Sign Out</span>
+                </button>
+              )}
+
+            </div>
+          )}
+
+          {/* Clickable Profile Card at the Bottom of Sidebar */}
+          <button
+            onClick={() => setShowProfileMenu(prev => !prev)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 12px',
+              background: showProfileMenu ? C.surfaceAlt : 'rgba(255,255,255,0.02)',
+              border: ('1px solid ' + (showProfileMenu ? C.borderAlt : '#222')),
+              borderRadius: 12,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              textAlign: 'left',
+              fontFamily: 'inherit'
+            }}
+            onMouseEnter={e => { if (!showProfileMenu) { e.currentTarget.style.background = C.surfaceAlt; e.currentTarget.style.borderColor = C.borderAlt; }}}
+            onMouseLeave={e => { if (!showProfileMenu) { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = '#222'; }}}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              {user?.userPhoto
+                ? <img src={user.userPhoto} alt="avatar" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                : <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#262626', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: '#e2e8f0', flexShrink: 0 }}>
+                    {(name || 'U').charAt(0).toUpperCase()}
+                  </div>
+              }
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {name || 'User'}
+                </div>
+                <div style={{ fontSize: 10, color: C.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {email || 'Settings'}
+                </div>
+              </div>
+            </div>
+
+            {/* Subtle Chevron / Indicator */}
+            <svg width="14" height="14" fill="none" stroke={C.textMuted} viewBox="0 0 24 24" style={{ transform: showProfileMenu ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
+        </div>
+
+      </div>
+
+      {/* Main Content Area */}
+      <div style={{ flex: 1, padding: '48px 56px 40px 56px', overflowY: 'auto', minWidth: 0, height: '100vh', boxSizing: 'border-box' }}>
+        <div style={{ maxWidth: 540 }}>
+
+          {/* Profile Tab */}
+          {activeTab === 'profile' && (
+            <>
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.4px' }}>Profile & AI Persona</h2>
+              <p style={{ fontSize: 12, color: C.textSub, marginBottom: 32 }}>Customize your profile so Adyber knows who you are.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <Field label="Your Name">
                     <FocusInput as="input" type="text" style={inputBase} value={name} onChange={e => setName(e.target.value)} placeholder="Enter your name" />
                   </Field>
                   <Field label="About You / Role">
@@ -801,13 +957,19 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   </div>
                 </div>
 
-                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                <style>{`
+                  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                  @keyframes popoverIn {
+                    from { opacity: 0; transform: translateY(6px) scale(0.97); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                  }
+                `}</style>
               </>
             )}
 
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 }
+
