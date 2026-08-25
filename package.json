@@ -1,7 +1,7 @@
 {
   "name": "ady-ai-assistant",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Adyber Desktop AI Assistant",
   "author": "Pritha ReelBee",
   "type": "module",
