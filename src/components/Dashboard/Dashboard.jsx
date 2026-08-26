@@ -2,33 +2,36 @@ import React, { useState, useEffect, useRef } from 'react';
 import logoImg from '/logo.png';
 import { saveUserDataToFirebase } from '../../firebase';
 
-// Design System Tokens (Flow Dark Architecture)
-const D = {
-  shellBg: '#090a0d',       // Outer frame uniting top bar & sidebar
-  panelBg: '#13151b',       // Elevated main content dashboard container
-  cardBg: '#0c0d11',        // Inner cards
-  border: 'rgba(255, 255, 255, 0.08)',
-  borderLight: 'rgba(255, 255, 255, 0.04)',
-  borderActive: 'rgba(99, 102, 241, 0.4)',
-  text: '#f8fafc',
-  textSub: '#94a3b8',
-  textMuted: '#64748b',
-  purple: '#a855f7',
-  indigo: '#6366f1',
-  emerald: '#10b981',
-  sky: '#38bdf8',
-  danger: '#ef4444',
-  dangerBg: 'rgba(239, 68, 68, 0.1)',
+// Exact Palette from OnboardingFlow.jsx (Clean Monochrome Dark Theme)
+const C = {
+  shellBg: '#0b0b0b',
+  panelBg: '#141414',
+  cardBg: '#1c1c1c',
+  cardHover: '#222222',
+  inputBg: '#141414',
+  border: '#262626',
+  borderInput: '#2e2e2e',
+  borderFocus: '#ffffff',
+  text: '#ffffff',
+  textSub: '#888888',
+  textMuted: '#555555',
+  accent: '#ffffff',
+  accentText: '#000000',
+  danger: '#f87171',
+  dangerBg: '#2a0a0a',
+  dangerBorder: '#5c1a1a',
+  emerald: '#34d399',
+  sky: '#60a5fa',
 };
 
 const inputStyle = {
   width: '100%',
   height: 44,
-  background: '#0e1014',
-  border: `1px solid ${D.border}`,
-  borderRadius: 8,
+  background: C.inputBg,
+  border: `1px solid ${C.borderInput}`,
+  borderRadius: 10,
   padding: '0 14px',
-  color: D.text,
+  color: C.text,
   fontSize: 13,
   outline: 'none',
   fontFamily: 'inherit',
@@ -120,7 +123,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     }).catch(() => {});
   }, [user]);
 
-  // Updater IPC
   useEffect(() => {
     const api = window.electronAPI;
     if (!api) return;
@@ -216,9 +218,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     <div style={{
       width: '100vw',
       height: '100vh',
-      background: D.shellBg,
+      background: C.shellBg,
       display: 'flex',
-      color: D.text,
+      color: C.text,
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       overflow: 'hidden',
       userSelect: 'none',
@@ -243,14 +245,14 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, WebkitAppRegion: 'no-drag' }}>
           <button
             onClick={() => setActiveNav('dictation')}
-            style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', display: 'flex', padding: 2 }}
+            style={{ background: 'none', border: 'none', color: C.textSub, cursor: 'pointer', display: 'flex', padding: 2 }}
             title="Toggle Sidebar"
           >
             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 12h16M4 18h7"/></svg>
           </button>
           <button
             onClick={() => setShowProfileMenu(prev => !prev)}
-            style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', display: 'flex', padding: 2 }}
+            style={{ background: 'none', border: 'none', color: C.textSub, cursor: 'pointer', display: 'flex', padding: 2 }}
             title="Profile"
           >
             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -261,18 +263,18 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, WebkitAppRegion: 'no-drag' }}>
           <button
             onClick={() => setActiveNav('settings')}
-            style={{ background: 'none', border: 'none', color: updateStatus === 'available' ? D.sky : D.textMuted, cursor: 'pointer', display: 'flex', padding: 2 }}
-            title={updateStatus === 'available' ? 'Update Available!' : 'Settings & Notifications'}
+            style={{ background: 'none', border: 'none', color: updateStatus === 'available' ? C.sky : C.textSub, cursor: 'pointer', display: 'flex', padding: 2 }}
+            title={updateStatus === 'available' ? 'Update Available!' : 'Settings'}
           >
             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
           </button>
-          <button onClick={() => window.electronAPI?.windowMinimize()} style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', padding: 2 }} title="Minimize">
+          <button onClick={() => window.electronAPI?.windowMinimize()} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', padding: 2 }} title="Minimize">
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"/></svg>
           </button>
-          <button onClick={() => window.electronAPI?.windowMaximize()} style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', padding: 2 }} title="Maximize">
+          <button onClick={() => window.electronAPI?.windowMaximize()} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', padding: 2 }} title="Maximize">
             <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4h16v16H4z"/></svg>
           </button>
-          <button onClick={() => window.electronAPI?.windowClose()} style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', padding: 2 }} title="Close">
+          <button onClick={() => window.electronAPI?.windowClose()} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', padding: 2 }} title="Close">
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
@@ -298,7 +300,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             <span style={{ width: 3, height: 10, background: '#fff', borderRadius: 2 }} />
           </div>
           <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.4px', color: '#fff' }}>Flow</span>
-          <span style={{ fontSize: 10, color: D.textMuted, marginLeft: 2, background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4 }}>Ady</span>
+          <span style={{ fontSize: 10, color: C.textMuted, marginLeft: 2, background: '#1c1c1c', border: `1px solid ${C.border}`, padding: '1px 5px', borderRadius: 4 }}>Ady</span>
         </div>
 
         {/* Main Nav Items */}
@@ -324,9 +326,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   gap: 10,
                   padding: '7px 10px',
                   borderRadius: 8,
-                  background: active ? '#1a1c24' : 'transparent',
-                  border: 'none',
-                  color: active ? '#ffffff' : D.textSub,
+                  background: active ? '#1c1c1c' : 'transparent',
+                  border: `1px solid ${active ? C.border : 'transparent'}`,
+                  color: active ? '#ffffff' : C.textSub,
                   fontSize: 13,
                   fontWeight: active ? 600 : 400,
                   cursor: 'pointer',
@@ -334,7 +336,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   transition: 'all 0.15s ease',
                   fontFamily: 'inherit'
                 }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#141414'; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
               >
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -348,14 +350,14 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
 
         {/* Bottom Tier Status Card */}
         <div style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: `1px solid ${D.border}`,
+          background: C.cardBg,
+          border: `1px solid ${C.border}`,
           borderRadius: 10,
           padding: '12px',
           marginBottom: 12
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: D.purple }}>Unlimited AI Engine</div>
-          <div style={{ fontSize: 10.5, color: D.textMuted, marginTop: 4, lineHeight: 1.4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>Unlimited AI Engine</div>
+          <div style={{ fontSize: 10.5, color: C.textSub, marginTop: 4, lineHeight: 1.4 }}>
             NVIDIA NIM Cloud & Local Ollama active.
           </div>
           <button
@@ -365,8 +367,8 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               marginTop: 8,
               height: 28,
               borderRadius: 6,
-              background: '#090a0d',
-              border: `1px solid ${D.border}`,
+              background: '#0b0b0b',
+              border: `1px solid ${C.border}`,
               color: '#fff',
               fontSize: 11,
               fontWeight: 600,
@@ -389,15 +391,15 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               borderRadius: 6,
               background: 'transparent',
               border: 'none',
-              color: D.textSub,
+              color: C.textSub,
               fontSize: 12,
               cursor: 'pointer',
               textAlign: 'left'
             }}
             onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={e => e.currentTarget.style.color = D.textSub}
+            onMouseLeave={e => e.currentTarget.style.color = C.textSub}
           >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.emerald }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.emerald }} />
             <span>Open Floating Pill</span>
           </button>
 
@@ -409,22 +411,22 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               justifyContent: 'space-between',
               padding: '6px 10px',
               borderRadius: 6,
-              background: activeNav === 'settings' ? '#1a1c24' : 'transparent',
-              border: 'none',
-              color: activeNav === 'settings' ? '#fff' : D.textSub,
+              background: activeNav === 'settings' ? '#1c1c1c' : 'transparent',
+              border: `1px solid ${activeNav === 'settings' ? C.border : 'transparent'}`,
+              color: activeNav === 'settings' ? '#fff' : C.textSub,
               fontSize: 12,
               cursor: 'pointer',
               textAlign: 'left'
             }}
             onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={e => e.currentTarget.style.color = activeNav === 'settings' ? '#fff' : D.textSub}
+            onMouseLeave={e => e.currentTarget.style.color = activeNav === 'settings' ? '#fff' : C.textSub}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
               <span>Settings</span>
             </div>
             {updateStatus === 'available' && (
-              <span style={{ width: 16, height: 16, borderRadius: '50%', background: D.danger, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ width: 16, height: 16, borderRadius: '50%', background: C.danger, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 1
               </span>
             )}
@@ -433,14 +435,14 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
 
       </div>
 
-      {/* DISTINCT ELEVATED MAIN DASHBOARD PANEL (Rounded Card with Margins) */}
+      {/* DISTINCT ELEVATED MAIN DASHBOARD PANEL (#141414 with #262626 border) */}
       <div style={{
         flex: 1,
         margin: '42px 14px 14px 0',
-        background: D.panelBg,
-        borderRadius: 20,
-        border: `1px solid ${D.border}`,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+        background: C.panelBg,
+        borderRadius: 18,
+        border: `1px solid ${C.border}`,
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
         overflowY: 'auto',
         padding: '30px 36px',
         boxSizing: 'border-box',
@@ -448,7 +450,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
       }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
 
-          {/* VIEW: Dictation & Activity (Default Main Flow Dashboard) */}
+          {/* VIEW: Dictation & Activity (Main Flow Dashboard in Clean Monochrome) */}
           {(activeNav === 'dictation' || activeNav === 'transforms' || activeNav === 'scratchpad') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
               
@@ -459,52 +461,42 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 </h1>
               </div>
 
-              {/* Hero Row: Wide Banner + Right Stats Card */}
+              {/* Hero Row: Wide Card + Right Stats Card */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 190px', gap: 16 }}>
                 
                 {/* Wide Banner */}
                 <div style={{
-                  background: 'linear-gradient(135deg, #090a0d 0%, #101217 100%)',
-                  border: `1px solid ${D.border}`,
+                  background: C.cardBg,
+                  border: `1px solid ${C.border}`,
                   borderRadius: 14,
                   padding: '24px 28px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
-                  position: 'relative',
-                  overflow: 'hidden'
+                  position: 'relative'
                 }}>
-                  <div style={{
-                    position: 'absolute',
-                    right: -10,
-                    top: -10,
-                    width: 140,
-                    height: 140,
-                    background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15), transparent)',
-                    pointerEvents: 'none'
-                  }} />
-                  <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 6px 0', fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic' }}>
-                    Make Flow sound like <span style={{ fontStyle: 'normal', color: D.purple }}>you</span>
+                  <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 6px 0', letterSpacing: '-0.3px' }}>
+                    Make Flow sound like you
                   </h2>
-                  <p style={{ fontSize: 12, color: D.textSub, margin: '0 0 16px 0', maxWidth: 380 }}>
+                  <p style={{ fontSize: 12, color: C.textSub, margin: '0 0 16px 0', maxWidth: 380 }}>
                     Configure custom AI persona, preferred hotkeys ({shortcutKey}), and voice automation.
                   </p>
                   <div>
                     <button
                       onClick={() => setActiveNav('settings')}
                       style={{
-                        padding: '7px 18px',
-                        background: '#ffffff',
+                        padding: '8px 20px',
+                        background: C.accent,
                         border: 'none',
-                        borderRadius: 20,
-                        color: '#000000',
-                        fontSize: 12,
+                        borderRadius: 12,
+                        color: C.accentText,
+                        fontSize: 12.5,
                         fontWeight: 700,
                         cursor: 'pointer',
-                        transition: 'transform 0.15s ease'
+                        transition: 'opacity 0.15s ease'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
-                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                      onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                     >
                       Start now
                     </button>
@@ -513,8 +505,8 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
 
                 {/* Right Stats Card */}
                 <div style={{
-                  background: D.cardBg,
-                  border: `1px solid ${D.border}`,
+                  background: C.cardBg,
+                  border: `1px solid ${C.border}`,
                   borderRadius: 14,
                   padding: '20px',
                   display: 'flex',
@@ -526,19 +518,19 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                     <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
                       {(totalWords / 1000).toFixed(1)}K
                     </span>
-                    <span style={{ fontSize: 11, color: D.textMuted, marginLeft: 6 }}>total words</span>
+                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>total words</span>
                   </div>
                   <div>
                     <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
                       0.4s
                     </span>
-                    <span style={{ fontSize: 11, color: D.textMuted, marginLeft: 6 }}>AI latency</span>
+                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>AI latency</span>
                   </div>
                   <div>
                     <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
                       {factsCount}
                     </span>
-                    <span style={{ fontSize: 11, color: D.textMuted, marginLeft: 6 }}>learned facts</span>
+                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>learned facts</span>
                   </div>
                 </div>
 
@@ -546,14 +538,14 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
 
               {/* Activity Timeline ("TODAY") Matching Flow Reference Layout */}
               <div style={{
-                background: D.cardBg,
-                border: `1px solid ${D.border}`,
+                background: C.cardBg,
+                border: `1px solid ${C.border}`,
                 borderRadius: 14,
                 padding: '18px 22px'
               }}>
                 {/* Header Row */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottom: `1px solid ${D.border}` }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: D.textMuted, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.textSub, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
                     TODAY
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -564,9 +556,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                         value={searchFilter}
                         onChange={e => setSearchFilter(e.target.value)}
                         style={{
-                          height: 26,
-                          background: '#090a0d',
-                          border: `1px solid ${D.border}`,
+                          height: 28,
+                          background: '#141414',
+                          border: `1px solid ${C.border}`,
                           borderRadius: 14,
                           padding: '0 10px 0 26px',
                           color: '#fff',
@@ -575,7 +567,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                           width: 140
                         }}
                       />
-                      <svg width="12" height="12" fill="none" stroke={D.textMuted} viewBox="0 0 24 24" style={{ position: 'absolute', left: 8, top: 7 }}>
+                      <svg width="12" height="12" fill="none" stroke={C.textSub} viewBox="0 0 24 24" style={{ position: 'absolute', left: 8, top: 8 }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                     </div>
@@ -585,8 +577,8 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 {/* Timeline Entries */}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {filteredHistory.length === 0 ? (
-                    <div style={{ padding: '32px 0', textAlign: 'center', color: D.textMuted, fontSize: 12 }}>
-                      No voice prompts recorded yet today. Hold <span style={{ color: D.sky, fontFamily: 'monospace' }}>{shortcutKey}</span> and speak to Ady!
+                    <div style={{ padding: '32px 0', textAlign: 'center', color: C.textSub, fontSize: 12 }}>
+                      No voice prompts recorded yet today. Hold <span style={{ color: '#fff', fontFamily: 'monospace' }}>{shortcutKey}</span> and speak to Ady!
                     </div>
                   ) : (
                     [...filteredHistory].reverse().map((item, idx) => {
@@ -599,19 +591,19 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                             gridTemplateColumns: '80px 1fr auto',
                             alignItems: 'center',
                             padding: '14px 0',
-                            borderBottom: idx < filteredHistory.length - 1 ? `1px solid ${D.borderLight}` : 'none'
+                            borderBottom: idx < filteredHistory.length - 1 ? `1px solid ${C.border}` : 'none'
                           }}
                         >
-                          <div style={{ fontSize: 11.5, color: D.textMuted }}>
+                          <div style={{ fontSize: 11.5, color: C.textSub }}>
                             {item.time || '12:00 pm'}
                           </div>
 
                           <div style={{ paddingRight: 16 }}>
-                            <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.4 }}>
+                            <div style={{ fontSize: 13, color: '#ffffff', lineHeight: 1.4 }}>
                               {item.user}
                             </div>
                             {item.assistant && (
-                              <div style={{ fontSize: 12, color: D.textMuted, marginTop: 4, lineHeight: 1.4 }}>
+                              <div style={{ fontSize: 12, color: C.textSub, marginTop: 4, lineHeight: 1.4 }}>
                                 {item.assistant}
                               </div>
                             )}
@@ -620,14 +612,14 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <button
                               onClick={() => handleCopyText(item.user, idx)}
-                              style={{ background: 'none', border: 'none', color: copiedId === idx ? D.emerald : D.textMuted, cursor: 'pointer', padding: 4 }}
+                              style={{ background: 'none', border: 'none', color: copiedId === idx ? C.emerald : C.textSub, cursor: 'pointer', padding: 4 }}
                               title="Copy prompt"
                             >
                               <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                             </button>
                             <button
                               onClick={() => handleDeleteHistoryItem(originalIndex)}
-                              style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', padding: 4 }}
+                              style={{ background: 'none', border: 'none', color: C.textSub, cursor: 'pointer', padding: 4 }}
                               title="Delete entry"
                             >
                               <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -647,14 +639,14 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           {activeNav === 'memory' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Notetaker & Long-Term Memory</h2>
-              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Persistent facts, user preferences, and learned web URLs saved in memory.</p>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Persistent facts, user preferences, and learned web URLs saved in memory.</p>
 
-              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20 }}>
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
                 <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Learned Facts</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   {Object.entries(memoryData?.facts || {}).map(([k, v], i) => (
-                    <div key={i} style={{ background: '#0e1014', border: `1px solid ${D.border}`, borderRadius: 8, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 11, color: D.textMuted, fontWeight: 600 }}>{k}</div>
+                    <div key={i} style={{ background: '#141414', border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px' }}>
+                      <div style={{ fontSize: 11, color: C.textSub, fontWeight: 600 }}>{k}</div>
                       <div style={{ fontSize: 12.5, color: '#fff', marginTop: 2 }}>{v}</div>
                     </div>
                   ))}
@@ -667,11 +659,11 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           {activeNav === 'engine' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>AI Engine & Models</h2>
-              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Configure high-speed NVIDIA NIM Cloud or 100% Offline Local Ollama.</p>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure high-speed NVIDIA NIM Cloud or 100% Offline Local Ollama.</p>
 
-              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>EXECUTION MODE</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>EXECUTION MODE</label>
                   <select style={inputStyle} value={apiMode} onChange={e => setApiMode(e.target.value)}>
                     <option value="free_key">NVIDIA NIM Cloud API Key (Fast 0.4s)</option>
                     <option value="local_ollama">100% Offline Local Ollama</option>
@@ -681,7 +673,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 {apiMode === 'free_key' ? (
                   <>
                     <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>MODEL</label>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>MODEL</label>
                       <select style={inputStyle} value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
                         <option value="meta/llama-3.1-8b-instruct">meta/llama-3.1-8b-instruct (Fast & Accurate)</option>
                         <option value="meta/llama-3.1-70b-instruct">meta/llama-3.1-70b-instruct (High Reasoning)</option>
@@ -689,13 +681,13 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                       </select>
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>NVIDIA NIM API KEY</label>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>NVIDIA NIM API KEY</label>
                       <input type="password" style={inputStyle} value={nvidiaKey} onChange={e => setNvidiaKey(e.target.value)} placeholder="nvapi-..." />
                     </div>
                   </>
                 ) : (
                   <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>OLLAMA URL</label>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>OLLAMA URL</label>
                     <input type="text" style={inputStyle} value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} />
                   </div>
                 )}
@@ -703,11 +695,11 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
                   <button
                     onClick={handleSaveEngine}
-                    style={{ height: 36, padding: '0 20px', borderRadius: 8, background: '#fff', border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                    style={{ height: 38, padding: '0 22px', borderRadius: 10, background: C.accent, border: 'none', color: C.accentText, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
                   >
                     Save Engine
                   </button>
-                  {engineStatus === 'ok' && <span style={{ color: D.emerald, fontSize: 12 }}>✓ Engine Saved!</span>}
+                  {engineStatus === 'ok' && <span style={{ color: C.emerald, fontSize: 12 }}>✓ Engine Saved!</span>}
                 </div>
               </div>
             </div>
@@ -717,9 +709,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           {activeNav === 'hotkey' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Snippets & Shortcut Keys</h2>
-              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Configure the universal push-to-talk key combo.</p>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure the universal push-to-talk key combo.</p>
 
-              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20 }}>
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   {['Ctrl+Shift', 'Ctrl+Space', 'Alt+Space', 'Ctrl+CapsLock'].map(k => (
                     <button
@@ -727,10 +719,10 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                       onClick={() => handleSaveShortcut(k)}
                       style={{
                         padding: '12px',
-                        borderRadius: 8,
-                        background: shortcutKey === k ? 'rgba(56, 189, 248, 0.12)' : '#0e1014',
-                        border: `1px solid ${shortcutKey === k ? D.sky : D.border}`,
-                        color: shortcutKey === k ? D.sky : D.textSub,
+                        borderRadius: 10,
+                        background: shortcutKey === k ? '#141414' : C.cardBg,
+                        border: `1px solid ${shortcutKey === k ? '#ffffff' : C.border}`,
+                        color: shortcutKey === k ? '#ffffff' : C.textSub,
                         fontSize: 13,
                         fontFamily: 'monospace',
                         fontWeight: 700,
@@ -745,7 +737,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                     </button>
                   ))}
                 </div>
-                {keyStatus === 'ok' && <div style={{ marginTop: 12, color: D.emerald, fontSize: 12 }}>✓ Hotkey updated to {shortcutKey}!</div>}
+                {keyStatus === 'ok' && <div style={{ marginTop: 12, color: C.emerald, fontSize: 12 }}>✓ Hotkey updated to {shortcutKey}!</div>}
               </div>
             </div>
           )}
@@ -754,16 +746,16 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           {activeNav === 'knowledge' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Dictionary & Knowledge Base</h2>
-              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Discovered domains and web service shortcuts remembered by Ady.</p>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Discovered domains and web service shortcuts remembered by Ady.</p>
 
-              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20 }}>
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {Object.entries(memoryData?.facts || {})
                     .filter(([k]) => k.startsWith('Website URL'))
                     .map(([k, v], i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${D.borderLight}` }}>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
                         <span style={{ fontSize: 12.5, color: '#fff' }}>{k.replace('Website URL (', '').replace(')', '')}</span>
-                        <a href={v} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: D.sky, textDecoration: 'none' }}>{v} ↗</a>
+                        <a href={v} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#fff', textDecoration: 'underline' }}>{v} ↗</a>
                       </div>
                     ))}
                 </div>
@@ -775,19 +767,19 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           {(activeNav === 'settings' || activeNav === 'style') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Settings & Persona</h2>
-              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Configure personal profile, voice language, and app auto-updates.</p>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure personal profile, voice language, and app auto-updates.</p>
 
-              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>NAME</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>NAME</label>
                   <input type="text" style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Your Name" />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>ABOUT YOU</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>ABOUT YOU</label>
                   <textarea style={{ ...inputStyle, height: 70, padding: '10px 14px', resize: 'none' }} value={profileDesc} onChange={e => setProfileDesc(e.target.value)} placeholder="Role and background..." />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>LANGUAGE</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>LANGUAGE</label>
                   <select style={inputStyle} value={language} onChange={e => setLanguage(e.target.value)}>
                     {['English', 'Hindi', 'Spanish', 'French', 'German', 'Japanese'].map(l => <option key={l}>{l}</option>)}
                   </select>
@@ -798,22 +790,22 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
-                  <button onClick={handleSaveProfile} style={{ height: 36, padding: '0 20px', borderRadius: 8, background: '#fff', border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  <button onClick={handleSaveProfile} style={{ height: 38, padding: '0 22px', borderRadius: 10, background: C.accent, border: 'none', color: C.accentText, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                     Save Profile
                   </button>
-                  {saveStatus === 'ok' && <span style={{ color: D.emerald, fontSize: 12 }}>✓ Saved!</span>}
+                  {saveStatus === 'ok' && <span style={{ color: C.emerald, fontSize: 12 }}>✓ Saved!</span>}
                 </div>
               </div>
 
               {/* Updates Card */}
-              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Installed Version: v{appVersion}</div>
-                  <div style={{ fontSize: 11.5, color: D.textMuted, marginTop: 2 }}>Automatic updates enabled from GitHub Releases</div>
+                  <div style={{ fontSize: 11.5, color: C.textSub, marginTop: 2 }}>Automatic updates enabled from GitHub Releases</div>
                 </div>
                 <button
                   onClick={() => { setUpdateStatus('checking'); window.electronAPI?.checkForUpdates?.(); }}
-                  style={{ height: 32, padding: '0 16px', borderRadius: 6, background: '#1e2129', border: `1px solid ${D.border}`, color: '#fff', fontSize: 12, cursor: 'pointer' }}
+                  style={{ height: 34, padding: '0 18px', borderRadius: 8, background: '#141414', border: `1px solid ${C.border}`, color: '#fff', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
                 >
                   {updateStatus === 'checking' ? 'Checking...' : 'Check for Updates'}
                 </button>
