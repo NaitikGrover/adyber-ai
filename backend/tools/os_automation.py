@@ -65,7 +65,7 @@ class AppLauncher:
         "vlc": ["cmd.exe", "/c", "vlc"],
         
         # Social & Gaming
-        "discord": ["Update.exe", "--processStart", "Discord.exe"],
+        "discord": "discord:",
         "whatsapp": "whatsapp:",
         "telegram": "tg:",
         "zoom": "zoommtg:",
@@ -322,7 +322,16 @@ class AppLauncher:
                     print(f"[OS Automation] Launching securely with args: {action_args}")
                     subprocess.Popen(action_args, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             except Exception as e:
-                print(f"[OS Automation] Exception launching {target}: {e}")
+                print(f"[OS Automation] Primary launch method failed for {target}: {e}, trying system search fallback...")
+                try:
+                    fallback_path = AppLauncher._find_app_in_system(target_clean)
+                    if fallback_path:
+                        print(f"[OS Automation] Fallback launching: {fallback_path}")
+                        os.startfile(fallback_path)
+                    else:
+                        print(f"[OS Automation] Exception launching {target}: {e}")
+                except Exception as ex:
+                    print(f"[OS Automation] Fallback failed for {target}: {ex}")
 
         threading.Thread(target=_run, daemon=True).start()
         return True
