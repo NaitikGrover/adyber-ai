@@ -1,29 +1,39 @@
 import os
 import sys
-import glob
-import urllib.parse
 import subprocess
 import threading
+import glob
+import urllib.parse
 import winreg
 
 class AppLauncher:
-    """Secure, robust OS Automation Tool for scanning & launching Windows applications."""
+    """Intelligent Multi-Tier OS Application, Desktop Shortcut & Web Launcher with Autonomous Memory Learning."""
 
-    # Exhaustive dictionary of known applications, system tools, and protocol URIs
+    # Built-in Whitelisted Windows Apps and Native URI Protocols
     KNOWN_APPS = {
-        # Browsers
+        # Core Productivity & Browsers
         "chrome": ["cmd.exe", "/c", "start", "", "chrome"],
         "google chrome": ["cmd.exe", "/c", "start", "", "chrome"],
-        "edge": "msedge:",
-        "microsoft edge": "msedge:",
+        "edge": ["cmd.exe", "/c", "start", "", "msedge"],
+        "microsoft edge": ["cmd.exe", "/c", "start", "", "msedge"],
         "firefox": ["cmd.exe", "/c", "start", "", "firefox"],
         "brave": ["cmd.exe", "/c", "start", "", "brave"],
-        "opera": ["cmd.exe", "/c", "start", "", "opera"],
+        "code": ["cmd.exe", "/c", "code"],
+        "vs code": ["cmd.exe", "/c", "code"],
+        "vscode": ["cmd.exe", "/c", "code"],
+        "visual studio code": ["cmd.exe", "/c", "code"],
         
-        # Standard Utilities
+        # Windows System Utilities
         "notepad": ["notepad.exe"],
-        "calculator": "calc.exe",
-        "calc": "calc.exe",
+        "calculator": ["calc.exe"],
+        "calc": ["calc.exe"],
+        "task manager": ["taskmgr.exe"],
+        "taskmgr": ["taskmgr.exe"],
+        "settings": "ms-settings:",
+        "control panel": ["control.exe"],
+        "cmd": ["cmd.exe"],
+        "command prompt": ["cmd.exe"],
+        "powershell": ["powershell.exe"],
         "paint": ["mspaint.exe"],
         "ms paint": ["mspaint.exe"],
         "wordpad": ["write.exe"],
@@ -41,30 +51,8 @@ class AppLauncher:
         "outlook": ["cmd.exe", "/c", "start", "", "outlook"],
         "onenote": "onenote:",
         
-        # Creative & Dev Tools
-        "spotify": "spotify:",
-        "youtube": "https://www.youtube.com",
-        "youtube music": "https://music.youtube.com",
-        "yt music": "https://music.youtube.com",
-        "vs code": ["cmd.exe", "/c", "code"],
-        "vscode": ["cmd.exe", "/c", "code"],
-        "visual studio code": ["cmd.exe", "/c", "code"],
-        "visual studio": ["cmd.exe", "/c", "devenv"],
-        "pycharm": ["cmd.exe", "/c", "pycharm"],
-        "intellij": ["cmd.exe", "/c", "idea"],
-        "webstorm": ["cmd.exe", "/c", "webstorm"],
-        "sublime text": ["cmd.exe", "/c", "subl"],
-        "cursor": ["cmd.exe", "/c", "cursor"],
-        "git bash": ["cmd.exe", "/c", "git-bash"],
-        "postman": ["cmd.exe", "/c", "postman"],
-        "android studio": ["cmd.exe", "/c", "studio"],
-        "figma": ["cmd.exe", "/c", "figma"],
-        "blender": ["cmd.exe", "/c", "blender"],
-        "obs": ["cmd.exe", "/c", "obs64"],
-        "obs studio": ["cmd.exe", "/c", "obs64"],
+        # Media & Gaming
         "vlc": ["cmd.exe", "/c", "vlc"],
-        
-        # Social & Gaming
         "discord": os.path.expandvars(r"%APPDATA%\Microsoft\Windows\Start Menu\Programs\Discord.lnk"),
         "whatsapp": "whatsapp:",
         "telegram": "tg:",
@@ -79,35 +67,17 @@ class AppLauncher:
         # Windows System Folders
         "explorer": ["explorer.exe"],
         "file explorer": ["explorer.exe"],
-        "recycle bin": ["explorer.exe", "shell:RecycleBinFolder"],
-        "this pc": ["explorer.exe", "shell:MyComputerFolder"],
-        "documents": ["explorer.exe", "shell:Personal"],
+        "my computer": ["explorer.exe"],
+        "this pc": ["explorer.exe"],
         "downloads": ["explorer.exe", "shell:Downloads"],
+        "documents": ["explorer.exe", "shell:Personal"],
         "pictures": ["explorer.exe", "shell:My Pictures"],
-        
-        # System Management
-        "cmd": ["cmd.exe"],
-        "command prompt": ["cmd.exe"],
-        "powershell": ["powershell.exe"],
-        "task manager": ["taskmgr.exe"],
-        "control panel": ["control.exe"],
-        "settings": "ms-settings:",
-        "device manager": ["devmgmt.msc"],
-        "registry editor": ["regedit.exe"],
-        "system information": ["msinfo32.exe"],
-        
-        # Default UWP Apps
-        "photos": "ms-photos:",
-        "camera": "microsoft.windows.camera:",
-        "clock": "ms-clock:",
-        "alarms": "ms-clock:",
-        "weather": "bingweather:",
-        "maps": "bingmaps:",
-        "store": "ms-windows-store:",
-        "microsoft store": "ms-windows-store:"
+        "music": ["explorer.exe", "shell:My Music"],
+        "videos": ["explorer.exe", "shell:My Video"],
+        "desktop": ["explorer.exe", "shell:Desktop"]
     }
 
-    # Top known website domains mapped directly to HTTPS URLs
+    # Pre-indexed Popular Web Services
     KNOWN_WEBSITES = {
         "netflix": "https://www.netflix.com",
         "unity": "https://unity.com",
@@ -141,7 +111,8 @@ class AppLauncher:
         "notion": "https://www.notion.so",
         "canva": "https://www.canva.com",
         "stackoverflow": "https://stackoverflow.com",
-        "stack overflow": "https://stackoverflow.com"
+        "stack overflow": "https://stackoverflow.com",
+        "monkeytype": "https://monkeytype.com"
     }
 
     @staticmethod
@@ -187,13 +158,15 @@ class AppLauncher:
 
     @staticmethod
     def _find_app_in_system(app_name: str) -> str:
-        """Deep search across Windows Start Menu, Desktops, LocalAppData, and PATH for executables/shortcuts."""
+        """Deep search across Windows Start Menu, Chrome/Edge Installed Apps, Desktops, LocalAppData, and PATH."""
         target_norm = AppLauncher._normalize_name(app_name)
         
-        # Candidate search directories for .lnk and .exe files
+        # Comprehensive search directories including Chrome/Edge PWAs and Start Menu
         search_globs = [
             os.path.expandvars(r'%ProgramData%\Microsoft\Windows\Start Menu\Programs\**\*.lnk'),
             os.path.expandvars(r'%APPDATA%\Microsoft\Windows\Start Menu\Programs\**\*.lnk'),
+            os.path.expandvars(r'%APPDATA%\Microsoft\Windows\Start Menu\Programs\Chrome Apps\**\*.lnk'),
+            os.path.expandvars(r'%APPDATA%\Microsoft\Windows\Start Menu\Programs\Edge Apps\**\*.lnk'),
             os.path.expandvars(r'%USERPROFILE%\Desktop\*.lnk'),
             os.path.expandvars(r'%PUBLIC%\Desktop\*.lnk'),
             os.path.expandvars(r'%LOCALAPPDATA%\Programs\**\*.exe'),
@@ -238,8 +211,9 @@ class AppLauncher:
 
     @staticmethod
     def launch_app(target: str, query: str = "") -> bool:
-        """Launches a whitelisted application securely in a background thread, or performs deep-linked web automation."""
+        """Launches an application securely in a background thread, or performs deep-linked web automation with auto-learning."""
         target_clean = target.lower().strip()
+        from backend.memory_manager import memory
         
         # Extract song/search query from query parameter OR target string
         raw_query = query.strip() if query else target_clean
@@ -254,8 +228,8 @@ class AppLauncher:
         # Explicit website request check: user MUST say "website", " site", "site ", "www.", "http", etc.
         is_explicit_website = any(kw in target_clean for kw in ["website", " site", "site ", "www.", "http://", "https://", ".com", ".org", ".io", ".net", ".ai", ".dev", ".edu", ".gov"]) or target_clean.startswith("http") or target_clean.startswith("www")
         
-        # Normalize site/app name (e.g. "netflix website" -> "netflix", "unity site" -> "unity")
         clean_name = AppLauncher._normalize_name(target_clean)
+        learned_key = f"Website URL ({clean_name})"
         
         action_args = None
         action_url = None
@@ -271,99 +245,79 @@ class AppLauncher:
                 base_url = f"https://www.{clean_name}.com"
 
             action_url = f"{base_url}/search?q={query_encoded}" if query_encoded else base_url
+            memory.save_fact(learned_key, base_url)
 
-            # Save learned website domain to memory
-            try:
-                from backend.memory_manager import memory
-                memory.save_fact(f"Website URL ({clean_name})", base_url)
-            except Exception:
-                pass
-
-        # --- STEP 2: MEDIA PLAYBACK & SONG SEARCH ---
-        elif any(kw in target_clean for kw in ["play", "music", "song", "spotify", "youtube_music", "youtube music", "yt music", "ytmusic"]):
-            spotify_path = AppLauncher._find_app_in_system("spotify")
-
-            if "spotify" in target_clean or (spotify_path and "youtube" not in target_clean):
-                action_url = f"spotify:search:{song_query_encoded}" if song_query_encoded else "spotify:"
-            else:
-                # Direct YouTube Music Song Search & Autoplay URL
-                action_url = f"https://music.youtube.com/search?q={song_query_encoded}" if song_query_encoded else "https://music.youtube.com"
-
-        elif target_clean in ["youtube", "yt"]:
-            action_url = f"https://www.youtube.com/results?search_query={query_encoded}" if query_encoded else "https://www.youtube.com"
-
-        elif target_clean in ["chrome", "google chrome", "browser"]:
-            if query:
-                if query.startswith("http://") or query.startswith("https://") or ("." in query and " " not in query):
-                    action_url = query if query.startswith("http") else f"https://{query}"
-                else:
-                    action_url = f"https://www.google.com/search?q={query_encoded}"
-            else:
-                action_args = ["cmd.exe", "/c", "start", "", "chrome"]
-
+        # --- STEP 2: LOCAL PC APP & INSTALLED PWA SHORTCUT SCAN (PRIORITY 1) ---
         else:
-            # --- 3. STANDARD OS APP LAUNCHER & SYSTEM SCAN ---
-            # 3A. Check Memory for previously learned custom website or app URL
-            from backend.memory_manager import memory
-            learned_key = f"Website URL ({clean_name})"
-            learned_url = memory.data.get("facts", {}).get(learned_key)
-
-            if learned_url:
-                print(f"[OS Automation] Using previously learned website from memory: {learned_url}")
-                action_url = f"{learned_url}/search?q={query_encoded}" if query_encoded else learned_url
-            else:
-                # 3B. Check Known Apps Dictionary
+            # Check if there is an installed desktop application, Chrome PWA shortcut, or system utility
+            local_shortcut = AppLauncher._find_app_in_system(target_clean)
+            if local_shortcut:
+                target_path = local_shortcut
+                print(f"[OS Automation] Found installed desktop application/shortcut: {target_path}")
+            
+            # Check Known Apps dictionary
+            elif (AppLauncher.KNOWN_APPS.get(target_clean) or AppLauncher.KNOWN_APPS.get(clean_name)):
                 known = AppLauncher.KNOWN_APPS.get(target_clean) or AppLauncher.KNOWN_APPS.get(clean_name)
-                if known:
-                    if isinstance(known, str):
-                        if known.startswith("http://") or known.startswith("https://") or ":" in known:
-                            action_url = known
-                        elif os.path.exists(known):
-                            target_path = known
-                        else:
-                            action_args = ["cmd.exe", "/c", "start", "", known]
+                if isinstance(known, str):
+                    if known.startswith("http://") or known.startswith("https://") or ":" in known:
+                        action_url = known
+                    elif os.path.exists(known):
+                        target_path = known
                     else:
-                        action_args = known
+                        action_args = ["cmd.exe", "/c", "start", "", known]
                 else:
-                    # 3C. Deep Scan Local System for installed Desktop App / Shortcut
-                    target_path = AppLauncher._find_app_in_system(target_clean)
+                    action_args = known
 
-                    # 3D. AUTONOMOUS WEB DISCOVERY & LEARNING FALLBACK
-                    # If not installed locally on computer, discover official website, open it, and learn it for next time!
-                    if not target_path:
-                        print(f"[OS Automation] App '{target}' not installed locally. Discovering official website via web search...")
-                        discovered_url = None
+            # --- STEP 3: MEDIA PLAYBACK & SONG SEARCH ---
+            elif any(kw in target_clean for kw in ["play", "music", "song", "spotify", "youtube_music", "youtube music", "yt music", "ytmusic"]):
+                spotify_path = AppLauncher._find_app_in_system("spotify")
 
-                        # Check known websites first
-                        if clean_name in AppLauncher.KNOWN_WEBSITES:
-                            discovered_url = AppLauncher.KNOWN_WEBSITES[clean_name]
-                        elif "." in target_clean and " " not in target_clean:
-                            discovered_url = target_clean if target_clean.startswith("http") else f"https://{target_clean}"
-                        else:
-                            # Autonomous DuckDuckGo Search for Official Website
-                            try:
-                                from backend.tools.web_search import WebSearchEngine
-                                res = WebSearchEngine.search(f"{clean_name} official website")
-                                for s in res.get("sources", []):
-                                    url = s.get("url", "")
-                                    if url and not any(skip in url for skip in ["google.com", "wikipedia.org", "bing.com", "duckduckgo.com"]):
-                                        parsed = urllib.parse.urlparse(url)
-                                        discovered_url = f"{parsed.scheme}://{parsed.netloc}"
-                                        break
-                            except Exception as ex:
-                                print(f"[OS Automation] Web search discovery error: {ex}")
+                if "spotify" in target_clean or (spotify_path and "youtube" not in target_clean):
+                    action_url = f"spotify:search:{song_query_encoded}" if song_query_encoded else "spotify:"
+                else:
+                    action_url = f"https://music.youtube.com/search?q={song_query_encoded}" if song_query_encoded else "https://music.youtube.com"
 
-                        if not discovered_url:
-                            discovered_url = f"https://www.{clean_name}.com"
+            elif target_clean in ["youtube", "yt"]:
+                action_url = f"https://www.youtube.com/results?search_query={query_encoded}" if query_encoded else "https://www.youtube.com"
 
-                        # Save learned website domain to permanent long-term memory!
-                        try:
-                            memory.save_fact(learned_key, discovered_url)
-                            print(f"[OS Automation] Learned & saved website to memory: {learned_key} -> {discovered_url}")
-                        except Exception:
-                            pass
+            elif target_clean in ["chrome", "google chrome", "browser"]:
+                if query:
+                    action_url = query if query.startswith("http") else f"https://www.google.com/search?q={query_encoded}"
+                else:
+                    action_args = ["cmd.exe", "/c", "start", "", "chrome"]
 
-                        action_url = f"{discovered_url}/search?q={query_encoded}" if query_encoded else discovered_url
+            # --- STEP 4: AUTONOMOUS WEB DISCOVERY & MEMORY LEARNING ---
+            else:
+                learned_url = memory.data.get("facts", {}).get(learned_key)
+                if learned_url:
+                    print(f"[OS Automation] Using previously learned website from memory: {learned_url}")
+                    action_url = f"{learned_url}/search?q={query_encoded}" if query_encoded else learned_url
+                elif clean_name in AppLauncher.KNOWN_WEBSITES:
+                    base_url = AppLauncher.KNOWN_WEBSITES[clean_name]
+                    action_url = f"{base_url}/search?q={query_encoded}" if query_encoded else base_url
+                    memory.save_fact(learned_key, base_url)
+                else:
+                    # Live Autonomous Web Discovery via DuckDuckGo
+                    print(f"[OS Automation] App '{target}' not installed locally. Discovering official website via web search...")
+                    discovered_url = None
+                    try:
+                        from backend.tools.web_search import WebSearchEngine
+                        res = WebSearchEngine.search(f"{clean_name} official website")
+                        for s in res.get("sources", []):
+                            url = s.get("url", "")
+                            if url and not any(skip in url for skip in ["google.com", "wikipedia.org", "bing.com", "duckduckgo.com"]):
+                                parsed = urllib.parse.urlparse(url)
+                                discovered_url = f"{parsed.scheme}://{parsed.netloc}"
+                                break
+                    except Exception as ex:
+                        print(f"[OS Automation] Web search discovery error: {ex}")
+
+                    if not discovered_url:
+                        discovered_url = f"https://www.{clean_name}.com"
+
+                    memory.save_fact(learned_key, discovered_url)
+                    print(f"[OS Automation] Learned & saved website to memory: {learned_key} -> {discovered_url}")
+                    action_url = f"{discovered_url}/search?q={query_encoded}" if query_encoded else discovered_url
 
         def _run():
             try:
@@ -380,16 +334,7 @@ class AppLauncher:
                         flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
                     subprocess.Popen(action_args, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
             except Exception as e:
-                print(f"[OS Automation] Primary launch method failed for {target}: {e}, trying system search fallback...")
-                try:
-                    fallback_path = AppLauncher._find_app_in_system(target_clean)
-                    if fallback_path:
-                        print(f"[OS Automation] Fallback launching: {fallback_path}")
-                        os.startfile(fallback_path)
-                    else:
-                        print(f"[OS Automation] Exception launching {target}: {e}")
-                except Exception as ex:
-                    print(f"[OS Automation] Fallback failed for {target}: {ex}")
+                print(f"[OS Automation] Launch exception for {target}: {e}")
 
         threading.Thread(target=_run, daemon=True).start()
         return True

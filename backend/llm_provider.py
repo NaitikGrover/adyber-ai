@@ -17,7 +17,7 @@ if not os.path.exists(SETTINGS_FILE) and os.path.exists(DEFAULT_SETTINGS_FILE):
         print(f"[Settings] Could not copy default settings: {e}")
 
 class LLMProviderManager:
-    """Manages Multi-Provider AI Model execution with security & memory integration."""
+    """Manages Multi-Provider AI Model execution with conversational multi-turn memory & web intelligence."""
 
     def __init__(self):
         self.settings_path = SETTINGS_FILE
@@ -69,6 +69,18 @@ class LLMProviderManager:
         print(f"[LLMProvider] Settings updated securely: Mode = {self.settings.get('mode')}, Provider = {self.settings.get('provider')}, Model = {self.settings.get('model')}")
         return self.settings
 
+    def _build_messages(self, prompt: str, persona_ctx: str, memory_ctx: str, web_info: str) -> list:
+        """Constructs rich multi-turn message payload preserving recent dialogue context."""
+        system_content = f"{persona_ctx}\n\n{memory_ctx}"
+        if web_info:
+            system_content += f"\n\n[Live Web Search Results & Context]:\n{web_info}"
+            
+        messages = [{"role": "system", "content": system_content}]
+        recent = memory.get_recent_messages(max_turns=6)
+        messages.extend(recent)
+        messages.append({"role": "user", "content": prompt})
+        return messages
+
     def _execute_llm(self, user_prompt: str, persona_ctx: str, memory_context: str, web_info: str) -> str:
         """Helper to run the configured LLM engine."""
         mode = self.settings.get("mode", "free_key")
@@ -88,7 +100,6 @@ class LLMProviderManager:
             
         elif mode == "local_ollama" or provider == "ollama":
             url = self.settings.get("ollama_url", "http://localhost:11434")
-            # SSRF guard: only allow requests to localhost
             url_lower = url.lower().strip()
             if not (url_lower.startswith("http://localhost") or url_lower.startswith("http://127.0.0.1")):
                 return f"Ollama URL must point to localhost. Current value '{url}' is not allowed."
@@ -99,7 +110,6 @@ class LLMProviderManager:
             return f"Could not connect to local Ollama at {url}. Please ensure Ollama is running (`ollama run {ollama_model}`)."
             
         elif mode == "free_key":
-            # Smart provider fallback: If current provider key is empty, check if any other provider key is present
             current_key = (self.settings.get(f"{provider}_api_key") or self.settings.get(f"{provider}_key") or "").strip()
             if not current_key:
                 for p_name in ["nvidia", "gemini", "openai", "groq", "claude", "openrouter"]:
@@ -147,7 +157,7 @@ class LLMProviderManager:
         memory_context = memory.get_memory_context_prompt()
         persona_ctx = self._load_system_prompt()
 
-        # PASS 1: Let the AI think first! (No web search)
+        # PASS 1: Let the AI think with multi-turn context
         final_answer = self._execute_llm(user_prompt, persona_ctx, memory_context, "")
         if final_answer is None:
             final_answer = ""
@@ -158,7 +168,7 @@ class LLMProviderManager:
         import re
         if "<ACTION>" in final_answer and "<SEARCH_WEB>" not in final_answer:
             if any(k in user_prompt.lower() for k in ["news", "weather", "who is", "what is", "how much", "net worth", "price of"]):
-                if "open" not in user_prompt.lower():
+                if "open" not in user_prompt.lower() and "launch" not in user_prompt.lower():
                     print("[Agent Loop] Heuristic: Converting incorrect ACTION into SEARCH_WEB")
                     final_answer = f"<SEARCH_WEB>{user_prompt}</SEARCH_WEB>"
 
@@ -168,41 +178,33 @@ class LLMProviderManager:
             search_query = search_match.group(1).strip()
             print(f"[Agent Loop] AI triggered Web Search for: {search_query}")
             
-            # Execute the Web Search tool
             search_res = WebSearchEngine.search(search_query)
             raw_summary = search_res.get("summary", "")
             sources = search_res.get("sources", [])
             
             # PASS 2: Re-prompt the AI with the live web context!
             print("[Agent Loop] Injecting live web results into AI brain...")
-            
-            strict_prompt = user_prompt + "\n\n(IMPORTANT: Read the Web Info to answer this. Do NOT output any <ACTION> or <SEARCH_WEB> tags.)"
+            strict_prompt = user_prompt + "\n\n(IMPORTANT: Use the Live Web Search Results to answer this concisely in plain spoken text. Do NOT output any <ACTION> or <SEARCH_WEB> tags.)"
             final_answer = self._execute_llm(strict_prompt, persona_ctx, memory_context, raw_summary)
             tool_used = "web_search"
-            
-            # Strip out any residual tags the AI might have accidentally echoed
-            final_answer = re.sub(r"<SEARCH_WEB>.*?</SEARCH_WEB>", "", final_answer, flags=re.IGNORECASE | re.DOTALL).strip()
 
-        # --- HEURISTIC MEMORY FILTERING ---
-        # Do not pollute the long-term LLM context with trivial, short-lived commands
-        is_trivial = False
-        prompt_lower = user_prompt.lower()
-        
-        # 1. If it was an OS app launch
-        if "<APP_START>" in final_answer:
-            is_trivial = True
-            
-        # 2. If it was a quick time/date check
-        if len(user_prompt.split()) <= 7:
-            if any(k in prompt_lower for k in ["time", "date", "open ", "launch ", "start "]):
-                is_trivial = True
-                
-        # 3. If the final answer is empty or just a broken tag
-        if not final_answer or final_answer.startswith("<"):
-            is_trivial = True
+        # Save facts if emitted
+        save_fact_matches = re.finditer(r"<SAVE_FACT>(.*?)</SAVE_FACT>", final_answer, re.DOTALL | re.IGNORECASE)
+        for match in save_fact_matches:
+            fact_payload = match.group(1).strip()
+            if ":" in fact_payload:
+                key, val = fact_payload.split(":", 1)
+                memory.save_fact(key.strip(), val.strip())
+                print(f"[Agent Loop] Saved Learned Fact to Memory: '{key.strip()}' -> '{val.strip()}'")
 
-        if not is_trivial:
-            memory.add_conversation(user_prompt, final_answer, tool_used=tool_used)
+        # Clean tags from final spoken summary
+        clean_spoken_text = final_answer
+        for tag in ["ACTION", "SEARCH_WEB", "SAVE_FACT"]:
+            clean_spoken_text = re.sub(rf"<{tag}>.*?</{tag}>", "", clean_spoken_text, flags=re.DOTALL | re.IGNORECASE).strip()
+
+        # Record conversation in multi-turn memory
+        if clean_spoken_text and not clean_spoken_text.startswith("<"):
+            memory.add_conversation(user_prompt, clean_spoken_text, tool_used=tool_used)
             
         return {"summary": final_answer, "sources": sources, "tool": tool_used}
 
@@ -211,10 +213,7 @@ class LLMProviderManager:
             from g4f.client import Client
             client = Client()
             model_name = model or "gpt-4o-mini"
-            messages = [
-                {"role": "system", "content": f"{persona_ctx}\n\n{memory_ctx}\nWeb Info: {web_info}"},
-                {"role": "user", "content": prompt}
-            ]
+            messages = self._build_messages(prompt, persona_ctx, memory_ctx, web_info)
             try:
                 response = client.chat.completions.create(model=model_name, messages=messages)
                 return response.choices[0].message.content.strip()
@@ -230,12 +229,10 @@ class LLMProviderManager:
         try:
             url = "https://openrouter.ai/api/v1/chat/completions"
             model_name = model or "meta-llama/llama-3.3-70b-instruct:free"
+            messages = self._build_messages(prompt, persona_ctx, memory_ctx, web_info)
             payload = {
                 "model": model_name,
-                "messages": [
-                    {"role": "system", "content": f"{persona_ctx}\n\n{memory_ctx}\nWeb Info: {web_info}"},
-                    {"role": "user", "content": prompt}
-                ]
+                "messages": messages
             }
             req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={
                 "Content-Type": "application/json",
@@ -258,17 +255,22 @@ class LLMProviderManager:
         if raw_model.startswith("models/"):
             raw_model = raw_model.replace("models/", "")
             
-        system_prompt = f"{persona_ctx}\n\n{memory_ctx}\nWeb Context:\n{web_info}".strip()
+        system_prompt = f"{persona_ctx}\n\n{memory_ctx}"
+        if web_info:
+            system_prompt += f"\n\n[Web Search Results / Context]:\n{web_info}"
+
+        contents = []
+        recent_turns = memory.get_recent_messages(max_turns=6)
+        for msg in recent_turns:
+            role = "user" if msg["role"] == "user" else "model"
+            contents.append({"role": role, "parts": [{"text": msg["content"]}]})
+        contents.append({"role": "user", "parts": [{"text": prompt}]})
+
         payload = {
             "system_instruction": {
                 "parts": [{"text": system_prompt}]
             },
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{"text": prompt}]
-                }
-            ]
+            "contents": contents
         }
         
         models_to_try = [raw_model]
@@ -299,7 +301,6 @@ class LLMProviderManager:
                     err_data = json.loads(e.read().decode('utf-8'))
                     msg = err_data.get('error', {}).get('message', str(e))
                     last_error = f"Gemini API Error ({m_name}): {msg}"
-                    print(f"[Gemini API HTTP Error on {m_name}]: {msg}")
                 except Exception:
                     last_error = f"Gemini API Error ({m_name}): {str(e)}"
             except Exception as e:
@@ -311,11 +312,19 @@ class LLMProviderManager:
         try:
             url = "https://api.anthropic.com/v1/messages"
             model_name = model or "claude-3-5-haiku-20241022"
+            system_prompt = f"{persona_ctx}\n\n{memory_ctx}"
+            if web_info:
+                system_prompt += f"\n\n[Web Context]:\n{web_info}"
+
+            recent_turns = memory.get_recent_messages(max_turns=6)
+            messages = [{"role": m["role"], "content": m["content"]} for m in recent_turns]
+            messages.append({"role": "user", "content": prompt})
+
             payload = {
                 "model": model_name,
                 "max_tokens": 1024,
-                "system": f"{persona_ctx}\n\n{memory_ctx}\nWeb Context:\n{web_info}",
-                "messages": [{"role": "user", "content": prompt}]
+                "system": system_prompt,
+                "messages": messages
             }
             req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={
                 "Content-Type": "application/json",
@@ -332,12 +341,10 @@ class LLMProviderManager:
         try:
             url = "https://api.openai.com/v1/chat/completions"
             model_name = model or "gpt-4o-mini"
+            messages = self._build_messages(prompt, persona_ctx, memory_ctx, web_info)
             payload = {
                 "model": model_name,
-                "messages": [
-                    {"role": "system", "content": f"{persona_ctx}\n\n{memory_ctx}\nWeb Info: {web_info}"},
-                    {"role": "user", "content": prompt}
-                ]
+                "messages": messages
             }
             req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"})
             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -350,12 +357,10 @@ class LLMProviderManager:
         try:
             url = "https://api.groq.com/openai/v1/chat/completions"
             model_name = model or "llama-3.1-8b-instant"
+            messages = self._build_messages(prompt, persona_ctx, memory_ctx, web_info)
             payload = {
                 "model": model_name,
-                "messages": [
-                    {"role": "system", "content": f"{persona_ctx}\n\n{memory_ctx}\nWeb Info: {web_info}"},
-                    {"role": "user", "content": prompt}
-                ]
+                "messages": messages
             }
             req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"})
             with urllib.request.urlopen(req, timeout=10) as resp:
@@ -368,12 +373,10 @@ class LLMProviderManager:
         try:
             url = "https://integrate.api.nvidia.com/v1/chat/completions"
             model_name = model or "meta/llama-3.1-8b-instruct"
+            messages = self._build_messages(prompt, persona_ctx, memory_ctx, web_info)
             payload = {
                 "model": model_name,
-                "messages": [
-                    {"role": "system", "content": f"{persona_ctx}\n\n{memory_ctx}\nWeb Info: {web_info}"},
-                    {"role": "user", "content": prompt}
-                ],
+                "messages": messages,
                 "temperature": 0.5,
                 "top_p": 1,
                 "max_tokens": 1024
@@ -386,7 +389,7 @@ class LLMProviderManager:
                     "Authorization": f"Bearer {api_key}"
                 }
             )
-            with urllib.request.urlopen(req, timeout=45) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
                 return data["choices"][0]["message"]["content"].strip()
         except Exception as e:
@@ -395,12 +398,10 @@ class LLMProviderManager:
     def _call_ollama(self, prompt: str, persona_ctx: str, memory_ctx: str, web_info: str, url: str, model: str) -> str:
         try:
             endpoint = f"{url.rstrip('/')}/api/chat"
+            messages = self._build_messages(prompt, persona_ctx, memory_ctx, web_info)
             payload = {
                 "model": model,
-                "messages": [
-                    {"role": "system", "content": f"{persona_ctx}\n\n{memory_ctx}\nWeb Info: {web_info}"},
-                    {"role": "user", "content": prompt}
-                ],
+                "messages": messages,
                 "stream": False
             }
             req = urllib.request.Request(endpoint, data=json.dumps(payload).encode('utf-8'), headers={"Content-Type": "application/json"})
