@@ -2,47 +2,118 @@ import React, { useState, useEffect, useRef } from 'react';
 import logoImg from '/logo.png';
 import { saveUserDataToFirebase } from '../../firebase';
 
-// Exact Palette from OnboardingFlow.jsx (Clean Monochrome Dark Theme)
-const C = {
-  shellBg: '#0b0b0b',
-  panelBg: '#141414',
-  cardBg: '#1c1c1c',
-  cardHover: '#222222',
-  inputBg: '#141414',
-  border: '#262626',
-  borderInput: '#2e2e2e',
-  borderFocus: '#ffffff',
-  text: '#ffffff',
-  textSub: '#888888',
-  textMuted: '#555555',
-  accent: '#ffffff',
-  accentText: '#000000',
-  danger: '#f87171',
-  dangerBg: '#2a0a0a',
-  dangerBorder: '#5c1a1a',
-  emerald: '#34d399',
-  sky: '#60a5fa',
-};
-
-const inputStyle = {
-  width: '100%',
-  height: 44,
-  background: C.inputBg,
-  border: `1px solid ${C.borderInput}`,
-  borderRadius: 10,
-  padding: '0 14px',
-  color: C.text,
-  fontSize: 13,
-  outline: 'none',
-  fontFamily: 'inherit',
-  boxSizing: 'border-box',
-  transition: 'border-color 0.15s ease',
+// 4 Curated Themes
+const THEMES = {
+  monochrome: {
+    name: 'Midnight Monochrome',
+    badge: 'Default',
+    preview: ['#0b0b0b', '#141414', '#ffffff'],
+    shellBg: '#0b0b0b',
+    panelBg: '#141414',
+    cardBg: '#1c1c1c',
+    cardHover: '#222222',
+    inputBg: '#141414',
+    border: '#262626',
+    borderInput: '#2e2e2e',
+    text: '#ffffff',
+    textSub: '#888888',
+    textMuted: '#555555',
+    accent: '#ffffff',
+    accentText: '#000000',
+    heroBg: '#1c1c1c',
+    heroTitleColor: '#ffffff',
+    heroAccent: '#ffffff',
+    heroFont: "'Inter', sans-serif",
+    heroStyle: 'normal',
+    danger: '#f87171',
+    isLight: false
+  },
+  linear_violet: {
+    name: 'Linear Violet',
+    badge: 'Futuristic',
+    preview: ['#08090b', '#101217', '#a855f7'],
+    shellBg: '#08090b',
+    panelBg: '#101217',
+    cardBg: '#151821',
+    cardHover: '#1c202d',
+    inputBg: '#0b0d12',
+    border: 'rgba(255, 255, 255, 0.08)',
+    borderInput: 'rgba(255, 255, 255, 0.12)',
+    text: '#f8fafc',
+    textSub: '#94a3b8',
+    textMuted: '#64748b',
+    accent: '#ffffff',
+    accentText: '#000000',
+    heroBg: 'linear-gradient(135deg, #090a0d 0%, #151821 100%)',
+    heroTitleColor: '#ffffff',
+    heroAccent: '#a855f7',
+    heroFont: "'Playfair Display', Georgia, serif",
+    heroStyle: 'italic',
+    danger: '#ef4444',
+    isLight: false
+  },
+  cyber_emerald: {
+    name: 'Cyber Emerald',
+    badge: 'Matrix',
+    preview: ['#060e0a', '#0b1913', '#10b981'],
+    shellBg: '#060e0a',
+    panelBg: '#0b1913',
+    cardBg: '#10241b',
+    cardHover: '#152e23',
+    inputBg: '#07120d',
+    border: 'rgba(16, 185, 129, 0.18)',
+    borderInput: 'rgba(16, 185, 129, 0.25)',
+    text: '#f0fdf4',
+    textSub: '#86efac',
+    textMuted: '#4ade80',
+    accent: '#10b981',
+    accentText: '#022c22',
+    heroBg: 'linear-gradient(135deg, #060e0a 0%, #10241b 100%)',
+    heroTitleColor: '#f0fdf4',
+    heroAccent: '#10b981',
+    heroFont: "'Inter', sans-serif",
+    heroStyle: 'normal',
+    danger: '#ef4444',
+    isLight: false
+  },
+  flow_light: {
+    name: 'Flow Pure Light',
+    badge: 'Clean Light',
+    preview: ['#f4f4f5', '#ffffff', '#0f172a'],
+    shellBg: '#f4f4f5',
+    panelBg: '#ffffff',
+    cardBg: '#f8fafc',
+    cardHover: '#f1f5f9',
+    inputBg: '#ffffff',
+    border: '#e2e8f0',
+    borderInput: '#cbd5e1',
+    text: '#0f172a',
+    textSub: '#64748b',
+    textMuted: '#94a3b8',
+    accent: '#0f172a',
+    accentText: '#ffffff',
+    heroBg: '#f1f5f9',
+    heroTitleColor: '#0f172a',
+    heroAccent: '#0f172a',
+    heroFont: "'Inter', sans-serif",
+    heroStyle: 'normal',
+    danger: '#dc2626',
+    isLight: true
+  }
 };
 
 export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }) {
+  const [themeKey, setThemeKey] = useState(() => localStorage.getItem('ady_theme') || 'monochrome');
   const [activeNav, setActiveNav] = useState('dictation');
   const [searchFilter, setSearchFilter] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+
+  const C = THEMES[themeKey] || THEMES.monochrome;
+
+  const handleSelectTheme = (key) => {
+    setThemeKey(key);
+    localStorage.setItem('ady_theme', key);
+  };
 
   // User Profile state
   const [name, setName] = useState('');
@@ -204,6 +275,21 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const inputStyle = {
+    width: '100%',
+    height: 44,
+    background: C.inputBg,
+    border: `1px solid ${C.borderInput}`,
+    borderRadius: 10,
+    padding: '0 14px',
+    color: C.text,
+    fontSize: 13,
+    outline: 'none',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.15s ease',
+  };
+
   const rawHistory = memoryData?.conversation_history || [];
   const filteredHistory = rawHistory.filter(item => {
     if (!searchFilter) return true;
@@ -224,10 +310,11 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       overflow: 'hidden',
       userSelect: 'none',
-      position: 'relative'
+      position: 'relative',
+      transition: 'background 0.25s ease'
     }}>
 
-      {/* Top Drag & Seamless Header (United with Outer Shell) */}
+      {/* Top Drag & Seamless Header */}
       <div style={{
         position: 'absolute',
         top: 0,
@@ -263,7 +350,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, WebkitAppRegion: 'no-drag' }}>
           <button
             onClick={() => setActiveNav('settings')}
-            style={{ background: 'none', border: 'none', color: updateStatus === 'available' ? C.sky : C.textSub, cursor: 'pointer', display: 'flex', padding: 2 }}
+            style={{ background: 'none', border: 'none', color: updateStatus === 'available' ? '#38bdf8' : C.textSub, cursor: 'pointer', display: 'flex', padding: 2 }}
             title={updateStatus === 'available' ? 'Update Available!' : 'Settings'}
           >
             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
@@ -280,7 +367,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         </div>
       </div>
 
-      {/* Left Sidebar (United seamlessly with Shell Background) */}
+      {/* Left Sidebar */}
       <div style={{
         width: 215,
         background: 'transparent',
@@ -295,12 +382,12 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         {/* Brand Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 6px 18px 6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <span style={{ width: 3, height: 14, background: '#fff', borderRadius: 2 }} />
-            <span style={{ width: 3, height: 18, background: '#fff', borderRadius: 2 }} />
-            <span style={{ width: 3, height: 10, background: '#fff', borderRadius: 2 }} />
+            <span style={{ width: 3, height: 14, background: C.text, borderRadius: 2 }} />
+            <span style={{ width: 3, height: 18, background: C.text, borderRadius: 2 }} />
+            <span style={{ width: 3, height: 10, background: C.text, borderRadius: 2 }} />
           </div>
-          <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.4px', color: '#fff' }}>Flow</span>
-          <span style={{ fontSize: 10, color: C.textMuted, marginLeft: 2, background: '#1c1c1c', border: `1px solid ${C.border}`, padding: '1px 5px', borderRadius: 4 }}>Ady</span>
+          <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.4px', color: C.text }}>Flow</span>
+          <span style={{ fontSize: 10, color: C.textMuted, marginLeft: 2, background: C.cardBg, border: `1px solid ${C.border}`, padding: '1px 5px', borderRadius: 4 }}>Ady</span>
         </div>
 
         {/* Main Nav Items */}
@@ -311,7 +398,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             { id: 'engine',    label: 'Insights',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/> },
             { id: 'knowledge', label: 'Dictionary', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/> },
             { id: 'hotkey',    label: 'Snippets',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.5 8.5M8 12a3 3 0 10-4.242-4.242L6.636 10.636"/> },
-            { id: 'style',     label: 'Style',      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 12h10M4 18h6"/> },
+            { id: 'style',     label: 'Style & Themes', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 21a4 4 0 01-4-4 5 5 0 012.38-4.27 4.97 4.97 0 012.62-.73c1.76 0 3.37.91 4.3 2.3A5 5 0 0119 17a4 4 0 01-4 4H7zM12 3v4m0 0l-2-2m2 2l2-2"/> },
             { id: 'transforms',label: 'Transforms', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/> },
             { id: 'scratchpad',label: 'Scratchpad', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/> }
           ].map(item => {
@@ -326,9 +413,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   gap: 10,
                   padding: '7px 10px',
                   borderRadius: 8,
-                  background: active ? '#1c1c1c' : 'transparent',
+                  background: active ? C.cardBg : 'transparent',
                   border: `1px solid ${active ? C.border : 'transparent'}`,
-                  color: active ? '#ffffff' : C.textSub,
+                  color: active ? C.text : C.textSub,
                   fontSize: 13,
                   fontWeight: active ? 600 : 400,
                   cursor: 'pointer',
@@ -336,7 +423,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   transition: 'all 0.15s ease',
                   fontFamily: 'inherit'
                 }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#141414'; }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = C.cardHover; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
               >
                 <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,7 +443,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           padding: '12px',
           marginBottom: 12
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>Unlimited AI Engine</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>Unlimited AI Engine</div>
           <div style={{ fontSize: 10.5, color: C.textSub, marginTop: 4, lineHeight: 1.4 }}>
             NVIDIA NIM Cloud & Local Ollama active.
           </div>
@@ -367,9 +454,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               marginTop: 8,
               height: 28,
               borderRadius: 6,
-              background: '#0b0b0b',
+              background: C.shellBg,
               border: `1px solid ${C.border}`,
-              color: '#fff',
+              color: C.text,
               fontSize: 11,
               fontWeight: 600,
               cursor: 'pointer'
@@ -396,10 +483,10 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               cursor: 'pointer',
               textAlign: 'left'
             }}
-            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+            onMouseEnter={e => e.currentTarget.style.color = C.text}
             onMouseLeave={e => e.currentTarget.style.color = C.textSub}
           >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.emerald }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
             <span>Open Floating Pill</span>
           </button>
 
@@ -411,22 +498,22 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               justifyContent: 'space-between',
               padding: '6px 10px',
               borderRadius: 6,
-              background: activeNav === 'settings' ? '#1c1c1c' : 'transparent',
+              background: activeNav === 'settings' ? C.cardBg : 'transparent',
               border: `1px solid ${activeNav === 'settings' ? C.border : 'transparent'}`,
-              color: activeNav === 'settings' ? '#fff' : C.textSub,
+              color: activeNav === 'settings' ? C.text : C.textSub,
               fontSize: 12,
               cursor: 'pointer',
               textAlign: 'left'
             }}
-            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-            onMouseLeave={e => e.currentTarget.style.color = activeNav === 'settings' ? '#fff' : C.textSub}
+            onMouseEnter={e => e.currentTarget.style.color = C.text}
+            onMouseLeave={e => e.currentTarget.style.color = activeNav === 'settings' ? C.text : C.textSub}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
               <span>Settings</span>
             </div>
             {updateStatus === 'available' && (
-              <span style={{ width: 16, height: 16, borderRadius: '50%', background: C.danger, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 1
               </span>
             )}
@@ -435,28 +522,29 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
 
       </div>
 
-      {/* DISTINCT ELEVATED MAIN DASHBOARD PANEL (#141414 with #262626 border) */}
+      {/* DISTINCT ELEVATED MAIN DASHBOARD PANEL */}
       <div style={{
         flex: 1,
         margin: '42px 14px 14px 0',
         background: C.panelBg,
         borderRadius: 18,
         border: `1px solid ${C.border}`,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+        boxShadow: C.isLight ? '0 4px 20px rgba(0, 0, 0, 0.08)' : '0 8px 32px rgba(0, 0, 0, 0.4)',
         overflowY: 'auto',
         padding: '30px 36px',
         boxSizing: 'border-box',
-        position: 'relative'
+        position: 'relative',
+        transition: 'background 0.25s ease'
       }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
 
-          {/* VIEW: Dictation & Activity (Main Flow Dashboard in Clean Monochrome) */}
+          {/* VIEW: Dictation & Activity (Main Flow Dashboard) */}
           {(activeNav === 'dictation' || activeNav === 'transforms' || activeNav === 'scratchpad') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
               
               {/* Greeting */}
               <div>
-                <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.4px' }}>
+                <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: 0, letterSpacing: '-0.4px' }}>
                   Welcome back, {name || 'Naitik'}
                 </h1>
               </div>
@@ -466,7 +554,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 
                 {/* Wide Banner */}
                 <div style={{
-                  background: C.cardBg,
+                  background: C.heroBg,
                   border: `1px solid ${C.border}`,
                   borderRadius: 14,
                   padding: '24px 28px',
@@ -475,8 +563,16 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   justifyContent: 'center',
                   position: 'relative'
                 }}>
-                  <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 6px 0', letterSpacing: '-0.3px' }}>
-                    Make Flow sound like you
+                  <h2 style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: C.heroTitleColor,
+                    margin: '0 0 6px 0',
+                    letterSpacing: '-0.3px',
+                    fontFamily: C.heroFont,
+                    fontStyle: C.heroStyle
+                  }}>
+                    Make Flow sound like <span style={{ fontStyle: 'normal', color: C.heroAccent }}>you</span>
                   </h2>
                   <p style={{ fontSize: 12, color: C.textSub, margin: '0 0 16px 0', maxWidth: 380 }}>
                     Configure custom AI persona, preferred hotkeys ({shortcutKey}), and voice automation.
@@ -515,19 +611,19 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   gap: 12
                 }}>
                   <div>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
                       {(totalWords / 1000).toFixed(1)}K
                     </span>
                     <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>total words</span>
                   </div>
                   <div>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
                       0.4s
                     </span>
                     <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>AI latency</span>
                   </div>
                   <div>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
                       {factsCount}
                     </span>
                     <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>learned facts</span>
@@ -536,7 +632,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
 
               </div>
 
-              {/* Activity Timeline ("TODAY") Matching Flow Reference Layout */}
+              {/* Activity Timeline ("TODAY") */}
               <div style={{
                 background: C.cardBg,
                 border: `1px solid ${C.border}`,
@@ -557,11 +653,11 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                         onChange={e => setSearchFilter(e.target.value)}
                         style={{
                           height: 28,
-                          background: '#141414',
+                          background: C.panelBg,
                           border: `1px solid ${C.border}`,
                           borderRadius: 14,
                           padding: '0 10px 0 26px',
-                          color: '#fff',
+                          color: C.text,
                           fontSize: 11,
                           outline: 'none',
                           width: 140
@@ -578,7 +674,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {filteredHistory.length === 0 ? (
                     <div style={{ padding: '32px 0', textAlign: 'center', color: C.textSub, fontSize: 12 }}>
-                      No voice prompts recorded yet today. Hold <span style={{ color: '#fff', fontFamily: 'monospace' }}>{shortcutKey}</span> and speak to Ady!
+                      No voice prompts recorded yet today. Hold <span style={{ color: C.text, fontFamily: 'monospace' }}>{shortcutKey}</span> and speak to Ady!
                     </div>
                   ) : (
                     [...filteredHistory].reverse().map((item, idx) => {
@@ -599,7 +695,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                           </div>
 
                           <div style={{ paddingRight: 16 }}>
-                            <div style={{ fontSize: 13, color: '#ffffff', lineHeight: 1.4 }}>
+                            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.4 }}>
                               {item.user}
                             </div>
                             {item.assistant && (
@@ -612,7 +708,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <button
                               onClick={() => handleCopyText(item.user, idx)}
-                              style={{ background: 'none', border: 'none', color: copiedId === idx ? C.emerald : C.textSub, cursor: 'pointer', padding: 4 }}
+                              style={{ background: 'none', border: 'none', color: copiedId === idx ? '#10b981' : C.textSub, cursor: 'pointer', padding: 4 }}
                               title="Copy prompt"
                             >
                               <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
@@ -635,19 +731,74 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
+          {/* VIEW: Style & Themes (Dedicated Theme Switcher) */}
+          {(activeNav === 'style') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Color Themes & Aesthetics</h2>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Choose your preferred look and feel for Adyber.</p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                {Object.entries(THEMES).map(([key, item]) => {
+                  const active = themeKey === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => handleSelectTheme(key)}
+                      style={{
+                        padding: 16,
+                        borderRadius: 14,
+                        background: item.panelBg,
+                        border: `2px solid ${active ? (item.isLight ? '#0f172a' : '#ffffff') : item.border}`,
+                        boxShadow: active ? '0 0 16px rgba(255,255,255,0.1)' : 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                        transition: 'transform 0.15s ease'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: item.text }}>{item.name}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 600, color: item.textSub, background: item.cardBg, padding: '2px 8px', borderRadius: 6, border: `1px solid ${item.border}` }}>
+                          {item.badge}
+                        </span>
+                      </div>
+
+                      {/* Visual Palette Preview Dots */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {item.preview.map((color, i) => (
+                          <span key={i} style={{ width: 22, height: 22, borderRadius: '50%', background: color, border: '1px solid rgba(128,128,128,0.3)' }} />
+                        ))}
+                      </div>
+
+                      {active && (
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: item.isLight ? '#0f172a' : '#ffffff' }}>
+                          ✓ Active Theme
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* VIEW: Memory & Insights */}
           {activeNav === 'memory' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Notetaker & Long-Term Memory</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Notetaker & Long-Term Memory</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Persistent facts, user preferences, and learned web URLs saved in memory.</p>
 
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Learned Facts</h3>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Learned Facts</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   {Object.entries(memoryData?.facts || {}).map(([k, v], i) => (
-                    <div key={i} style={{ background: '#141414', border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px' }}>
+                    <div key={i} style={{ background: C.panelBg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px' }}>
                       <div style={{ fontSize: 11, color: C.textSub, fontWeight: 600 }}>{k}</div>
-                      <div style={{ fontSize: 12.5, color: '#fff', marginTop: 2 }}>{v}</div>
+                      <div style={{ fontSize: 12.5, color: C.text, marginTop: 2 }}>{v}</div>
                     </div>
                   ))}
                 </div>
@@ -658,7 +809,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           {/* VIEW: AI Engine & Models */}
           {activeNav === 'engine' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>AI Engine & Models</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>AI Engine & Models</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure high-speed NVIDIA NIM Cloud or 100% Offline Local Ollama.</p>
 
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -699,7 +850,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   >
                     Save Engine
                   </button>
-                  {engineStatus === 'ok' && <span style={{ color: C.emerald, fontSize: 12 }}>✓ Engine Saved!</span>}
+                  {engineStatus === 'ok' && <span style={{ color: '#10b981', fontSize: 12 }}>✓ Engine Saved!</span>}
                 </div>
               </div>
             </div>
@@ -708,7 +859,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           {/* VIEW: Snippets & Hotkeys */}
           {activeNav === 'hotkey' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Snippets & Shortcut Keys</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Snippets & Shortcut Keys</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure the universal push-to-talk key combo.</p>
 
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
@@ -720,9 +871,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                       style={{
                         padding: '12px',
                         borderRadius: 10,
-                        background: shortcutKey === k ? '#141414' : C.cardBg,
-                        border: `1px solid ${shortcutKey === k ? '#ffffff' : C.border}`,
-                        color: shortcutKey === k ? '#ffffff' : C.textSub,
+                        background: shortcutKey === k ? C.panelBg : C.cardBg,
+                        border: `1px solid ${shortcutKey === k ? (C.isLight ? '#0f172a' : '#ffffff') : C.border}`,
+                        color: shortcutKey === k ? C.text : C.textSub,
                         fontSize: 13,
                         fontFamily: 'monospace',
                         fontWeight: 700,
@@ -737,7 +888,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                     </button>
                   ))}
                 </div>
-                {keyStatus === 'ok' && <div style={{ marginTop: 12, color: C.emerald, fontSize: 12 }}>✓ Hotkey updated to {shortcutKey}!</div>}
+                {keyStatus === 'ok' && <div style={{ marginTop: 12, color: '#10b981', fontSize: 12 }}>✓ Hotkey updated to {shortcutKey}!</div>}
               </div>
             </div>
           )}
@@ -745,7 +896,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           {/* VIEW: Dictionary / Knowledge Base */}
           {activeNav === 'knowledge' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Dictionary & Knowledge Base</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Dictionary & Knowledge Base</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Discovered domains and web service shortcuts remembered by Ady.</p>
 
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
@@ -754,8 +905,8 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                     .filter(([k]) => k.startsWith('Website URL'))
                     .map(([k, v], i) => (
                       <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
-                        <span style={{ fontSize: 12.5, color: '#fff' }}>{k.replace('Website URL (', '').replace(')', '')}</span>
-                        <a href={v} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#fff', textDecoration: 'underline' }}>{v} ↗</a>
+                        <span style={{ fontSize: 12.5, color: C.text }}>{k.replace('Website URL (', '').replace(')', '')}</span>
+                        <a href={v} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: C.text, textDecoration: 'underline' }}>{v} ↗</a>
                       </div>
                     ))}
                 </div>
@@ -764,10 +915,42 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           )}
 
           {/* VIEW: Settings & Profile */}
-          {(activeNav === 'settings' || activeNav === 'style') && (
+          {(activeNav === 'settings') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Settings & Persona</h2>
-              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure personal profile, voice language, and app auto-updates.</p>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Settings & Persona</h2>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure personal profile, theme appearance, voice language, and app auto-updates.</p>
+
+              {/* Theme Switcher inside Settings */}
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 12 }}>THEME SELECTION</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {Object.entries(THEMES).map(([k, t]) => (
+                    <button
+                      key={k}
+                      onClick={() => handleSelectTheme(k)}
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        background: t.panelBg,
+                        border: `2px solid ${themeKey === k ? (t.isLight ? '#0f172a' : '#ffffff') : t.border}`,
+                        color: t.text,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ width: 14, height: 14, borderRadius: '50%', background: t.accent }} />
+                        <span>{t.name}</span>
+                      </div>
+                      {themeKey === k && <span>✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
@@ -786,26 +969,26 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" checked={autoClosePanel} onChange={e => setAutoClosePanel(e.target.checked)} style={{ width: 16, height: 16 }} />
-                  <span style={{ fontSize: 12.5, color: '#fff' }}>Auto-close response panel when AI finishes speaking</span>
+                  <span style={{ fontSize: 12.5, color: C.text }}>Auto-close response panel when AI finishes speaking</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
                   <button onClick={handleSaveProfile} style={{ height: 38, padding: '0 22px', borderRadius: 10, background: C.accent, border: 'none', color: C.accentText, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                     Save Profile
                   </button>
-                  {saveStatus === 'ok' && <span style={{ color: C.emerald, fontSize: 12 }}>✓ Saved!</span>}
+                  {saveStatus === 'ok' && <span style={{ color: '#10b981', fontSize: 12 }}>✓ Saved!</span>}
                 </div>
               </div>
 
               {/* Updates Card */}
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Installed Version: v{appVersion}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Installed Version: v{appVersion}</div>
                   <div style={{ fontSize: 11.5, color: C.textSub, marginTop: 2 }}>Automatic updates enabled from GitHub Releases</div>
                 </div>
                 <button
                   onClick={() => { setUpdateStatus('checking'); window.electronAPI?.checkForUpdates?.(); }}
-                  style={{ height: 34, padding: '0 18px', borderRadius: 8, background: '#141414', border: `1px solid ${C.border}`, color: '#fff', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                  style={{ height: 34, padding: '0 18px', borderRadius: 8, background: C.panelBg, border: `1px solid ${C.border}`, color: C.text, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
                 >
                   {updateStatus === 'checking' ? 'Checking...' : 'Check for Updates'}
                 </button>
