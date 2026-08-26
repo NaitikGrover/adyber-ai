@@ -80,7 +80,7 @@ const THEMES = {
 
 export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }) {
   const [themeKey, setThemeKey] = useState(() => localStorage.getItem('ady_theme') || 'linear_violet');
-  const [activeNav, setActiveNav] = useState('activity'); // 'activity', 'memory', 'engine', 'knowledge', 'hotkey', 'style', 'settings'
+  const [activeNav, setActiveNav] = useState('dashboard'); // 'dashboard', 'memory', 'models', 'links', 'shortcuts', 'themes', 'settings'
   const [searchFilter, setSearchFilter] = useState('');
   const [copiedId, setCopiedId] = useState(null);
 
@@ -273,7 +273,8 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     return (item.user && item.user.toLowerCase().includes(q)) || (item.assistant && item.assistant.toLowerCase().includes(q));
   });
 
-  const totalQueries = rawHistory.length;
+  const totalQuestions = rawHistory.length;
+  const totalTasks = rawHistory.filter(h => /open|play|launch|search|go to|find|show|calc|weather|price|stock/i.test(h.user || '')).length;
   const factsCount = Object.keys(memoryData?.facts || {}).length;
 
   return (
@@ -307,9 +308,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         {/* Left window control icons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, WebkitAppRegion: 'no-drag' }}>
           <button
-            onClick={() => setActiveNav('activity')}
+            onClick={() => setActiveNav('dashboard')}
             style={{ background: 'none', border: 'none', color: C.textSub, cursor: 'pointer', display: 'flex', padding: 2 }}
-            title="Toggle Sidebar"
+            title="Dashboard Home"
           >
             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 12h16M4 18h7"/></svg>
           </button>
@@ -343,9 +344,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         </div>
       </div>
 
-      {/* Left Sidebar (Tailored for Adyber Voice Assistant) */}
+      {/* Left Sidebar (Short Clean Labels) */}
       <div style={{
-        width: 220,
+        width: 205,
         background: 'transparent',
         border: 'none',
         display: 'flex',
@@ -364,15 +365,15 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           </span>
         </div>
 
-        {/* Main Assistant Nav Items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+        {/* Short Nav Tabs */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
           {[
-            { id: 'activity',  label: 'Voice & Activity', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/> },
-            { id: 'memory',    label: 'Long-Term Memory', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/> },
-            { id: 'engine',    label: 'AI Engine & Models', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/> },
-            { id: 'knowledge', label: 'Web & Domains', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/> },
-            { id: 'hotkey',    label: 'Shortcut Keys', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/> },
-            { id: 'style',     label: 'Appearance & Themes', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 21a4 4 0 01-4-4 5 5 0 012.38-4.27 4.97 4.97 0 012.62-.73c1.76 0 3.37.91 4.3 2.3A5 5 0 0119 17a4 4 0 01-4 4H7zM12 3v4m0 0l-2-2m2 2l2-2"/> }
+            { id: 'dashboard', label: 'Dashboard', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/> },
+            { id: 'memory',    label: 'Memory',    icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/> },
+            { id: 'models',    label: 'Models',    icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/> },
+            { id: 'links',     label: 'Web Links', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/> },
+            { id: 'shortcuts', label: 'Shortcuts', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/> },
+            { id: 'themes',    label: 'Themes',    icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 21a4 4 0 01-4-4 5 5 0 012.38-4.27 4.97 4.97 0 012.62-.73c1.76 0 3.37.91 4.3 2.3A5 5 0 0119 17a4 4 0 01-4 4H7zM12 3v4m0 0l-2-2m2 2l2-2"/> }
           ].map(item => {
             const active = activeNav === item.id;
             return (
@@ -407,7 +408,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           })}
         </div>
 
-        {/* Bottom Engine Status Card */}
+        {/* Bottom Engine Card */}
         <div style={{
           background: C.cardBg,
           border: `1px solid ${C.border}`,
@@ -420,10 +421,10 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
           </div>
           <div style={{ fontSize: 10.5, color: C.textSub, marginTop: 4, lineHeight: 1.4 }}>
-            {apiMode === 'local_ollama' ? 'Local Ollama (Offline)' : 'NVIDIA NIM (0.4s Ultra-Fast)'}
+            {apiMode === 'local_ollama' ? 'Local Ollama (Offline)' : 'NVIDIA NIM (Ultra-Fast 0.4s)'}
           </div>
           <button
-            onClick={() => setActiveNav('engine')}
+            onClick={() => setActiveNav('models')}
             style={{
               width: '100%',
               marginTop: 8,
@@ -437,7 +438,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               cursor: 'pointer'
             }}
           >
-            Configure Engine
+            Configure
           </button>
         </div>
 
@@ -462,7 +463,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             onMouseLeave={e => e.currentTarget.style.color = C.textSub}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
-            <span>Open Floating AI Pill</span>
+            <span>Open AI Pill</span>
           </button>
 
           <button
@@ -513,11 +514,11 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
       }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
 
-          {/* VIEW: Voice & Activity (Main Assistant Dashboard) */}
-          {activeNav === 'activity' && (
+          {/* VIEW: DASHBOARD (Home Overview of Tasks, Questions & Recent Conversations) */}
+          {activeNav === 'dashboard' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
               
-              {/* Greeting */}
+              {/* Greeting Header */}
               <div>
                 <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: 0, letterSpacing: '-0.4px' }}>
                   Welcome back, {name || 'Naitik'}
@@ -525,7 +526,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               </div>
 
               {/* Hero Row: Wide Assistant Card + Right Stats Card */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 190px', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 16 }}>
                 
                 {/* Wide Assistant Banner */}
                 <div style={{
@@ -574,7 +575,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   </div>
                 </div>
 
-                {/* Right Assistant Stats Card */}
+                {/* Right Assistant Stats Card (Tasks & Questions Handled) */}
                 <div style={{
                   background: C.cardBg,
                   border: `1px solid ${C.border}`,
@@ -587,21 +588,21 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 }}>
                   <div>
                     <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
+                      {totalTasks}
+                    </span>
+                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>tasks done</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
+                      {totalQuestions}
+                    </span>
+                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>questions asked</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
                       0.4s
                     </span>
-                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>response time</span>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
-                      {totalQueries}
-                    </span>
-                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>voice queries</span>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
-                      {factsCount}
-                    </span>
-                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>learned facts</span>
+                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>avg latency</span>
                   </div>
                 </div>
 
@@ -649,7 +650,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {filteredHistory.length === 0 ? (
                     <div style={{ padding: '36px 0', textAlign: 'center', color: C.textSub, fontSize: 12 }}>
-                      No voice prompts recorded yet. Press <span style={{ color: C.text, fontFamily: 'monospace', fontWeight: 600 }}>{shortcutKey}</span> to start talking to Ady!
+                      No voice conversations recorded yet. Hold <span style={{ color: C.text, fontFamily: 'monospace', fontWeight: 600 }}>{shortcutKey}</span> and speak to Ady!
                     </div>
                   ) : (
                     [...filteredHistory].reverse().map((item, idx) => {
@@ -707,7 +708,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
-          {/* VIEW: Long-Term Memory */}
+          {/* VIEW: MEMORY */}
           {activeNav === 'memory' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Long-Term Memory</h2>
@@ -727,10 +728,10 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
-          {/* VIEW: AI Engine & Models */}
-          {activeNav === 'engine' && (
+          {/* VIEW: MODELS */}
+          {activeNav === 'models' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>AI Engine & Models</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>AI Models & Engines</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure high-speed NVIDIA NIM Cloud (0.4s) or 100% Offline Local Ollama.</p>
 
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -777,10 +778,10 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
-          {/* VIEW: Web & Domains */}
-          {activeNav === 'knowledge' && (
+          {/* VIEW: WEB LINKS */}
+          {activeNav === 'links' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Web Search & Domain Shortcuts</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Discovered Web Links</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Learned website URLs and dynamic web tools saved by Ady.</p>
 
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
@@ -798,8 +799,8 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
-          {/* VIEW: Shortcut Keys */}
-          {activeNav === 'hotkey' && (
+          {/* VIEW: SHORTCUTS */}
+          {activeNav === 'shortcuts' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Shortcut Keys</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure the universal push-to-talk key combination to summon Ady.</p>
@@ -835,10 +836,10 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
-          {/* VIEW: Appearance & Themes */}
-          {activeNav === 'style' && (
+          {/* VIEW: THEMES */}
+          {activeNav === 'themes' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Appearance & Themes</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Themes</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Choose your preferred color aesthetic for Adyber.</p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
@@ -889,7 +890,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
-          {/* VIEW: Settings & Profile */}
+          {/* VIEW: SETTINGS */}
           {activeNav === 'settings' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Settings & Persona</h2>
