@@ -270,62 +270,75 @@ async def process_prompt_and_respond(user_text: str, websocket: WebSocket, tts):
     sources = result.get("sources", [])
     tool_used = result.get("tool", "web_search")
 
-    # [OS AUTOMATION] Intercept and launch apps or smart web searches!
+    # [OS AUTOMATION] Dual-Intent Action Execution Engine
     action_matches = list(re.finditer(r"<ACTION>(.*?)</ACTION>", summary_text, re.IGNORECASE | re.DOTALL))
-    app_not_found = None
+    targets_to_launch = []
 
+    # 1. Extract explicit <ACTION> tags
     for match in action_matches:
         try:
             action_data = json.loads(match.group(1).strip())
-            target = action_data.get("target", "")
-            query = action_data.get("query", "")
-            
-            target_clean = target.lower().strip()
-            
-            # Structural validation to prevent path traversal or direct executable invocation from web prompt injection
-            if target_clean.startswith("file://") or any(ext in target_clean for ext in [".exe", ".bat", ".ps1", ".cmd", ".vbs"]):
-                print(f"[Security] Blocked malicious action target: {target_clean}")
-                continue
-            
-            # App launcher handles scanning and launching
-            success = AppLauncher.launch_app(target, query)
-            if not success:
-                app_not_found = target
-                break
-        except json.JSONDecodeError:
-            print("[OS Automation] Failed to parse JSON ACTION tag.")
+            t = action_data.get("target", "").strip()
+            q = action_data.get("query", "").strip()
+            if t:
+                targets_to_launch.append((t, q))
+        except Exception:
             pass
 
-    if app_not_found:
-        print(f"[Agent Loop] App '{app_not_found}' not found on system.")
-        summary_text = f"I could not find '{app_not_found}' installed on your computer. Would you like me to open the web page for it instead?"
-    else:
-        # Strip all hidden tags from the successful spoken text
-        summary_text = re.sub(r"<ACTION>.*?</ACTION>", "", summary_text, flags=re.IGNORECASE | re.DOTALL).strip()
-        summary_text = re.sub(r"<SEARCH_WEB>.*?</SEARCH_WEB>", "", summary_text, flags=re.IGNORECASE | re.DOTALL).strip()
-        
-        # [LONG-TERM MEMORY] Intercept and save user facts!
-        fact_matches = list(re.finditer(r"<SAVE_FACT>(.*?)</SAVE_FACT>", summary_text, re.IGNORECASE))
-        for match in fact_matches:
-            fact_data = match.group(1).strip()
-            if ":" in fact_data:
-                key, val = fact_data.split(":", 1)
-                memory.save_fact(key.strip(), val.strip())
-        # Strip all memory tags from the spoken text
-        summary_text = re.sub(r"<SAVE_FACT>.*?</SAVE_FACT>", "", summary_text, flags=re.IGNORECASE).strip()
+    # 2. Fallback Intent Classifier (Guarantees execution even if LLM omits the XML tag)
+    if not targets_to_launch:
+        p_lower = prompt.lower().strip()
+        s_lower = summary_text.lower().strip()
 
-        # If LLM output ONLY an action tag with no conversational text, inject friendly phrase
-        if action_matches and not summary_text:
-            try:
-                last_target = json.loads(action_matches[-1].group(1).strip()).get("target", "application")
-                summary_text = f"Opening {last_target} for you!"
-            except Exception:
-                summary_text = "Opening requested application for you!"
+        # Check User Prompt pattern: e.g. "open Google Chrome", "launch discord", "open kick.com", "play god's plan"
+        m_user = re.match(r"^(?:hey\s+\w+\s+|please\s+|can\s+you\s+)?(?:open|launch|start|run|play|go\s+to|visit)\s+(.+?)$", p_lower)
+        if m_user:
+            t = m_user.group(1).strip()
+            for filler in ["for me", "app", "application", "website", "site", "please", "now"]:
+                if t.endswith(" " + filler):
+                    t = t[:-len(filler)-1].strip()
+            if t and not any(skip in t for skip in ["something", "random", "it", "that", "this", "file", "folder"]):
+                targets_to_launch.append((t, ""))
+
+        # Check AI Spoken Response pattern: e.g. "Opening Google Chrome for you!"
+        if not targets_to_launch:
+            m_ai = re.search(r"(?:opening|launching|starting)\s+([a-zA-Z0-9\.\-\_\s]+?)(?:\s+for\s+you|\s+now|\.|\!|$)", s_lower)
+            if m_ai:
+                t = m_ai.group(1).strip()
+                if t and not any(skip in t for skip in ["something", "random", "it", "that", "this", "file", "folder", "application", "website", "app"]):
+                    targets_to_launch.append((t, ""))
+
+    action_triggered = False
+    for target, query in targets_to_launch:
+        target_clean = target.lower().strip()
+        # Security validation
+        if target_clean.startswith("file://") or any(ext in target_clean for ext in [".exe", ".bat", ".ps1", ".cmd", ".vbs"]):
+            print(f"[Security] Blocked unsafe action target: {target_clean}")
+            continue
+
+        print(f"[Agent Loop] Triggering App/Web Launch for: '{target}' (query: '{query}')")
+        AppLauncher.launch_app(target, query)
+        action_triggered = True
+
+    # Strip all hidden tags from the spoken text
+    summary_text = re.sub(r"<ACTION>.*?</ACTION>", "", summary_text, flags=re.IGNORECASE | re.DOTALL).strip()
+    summary_text = re.sub(r"<SEARCH_WEB>.*?</SEARCH_WEB>", "", summary_text, flags=re.IGNORECASE | re.DOTALL).strip()
+    
+    # [LONG-TERM MEMORY] Intercept and save user facts!
+    fact_matches = list(re.finditer(r"<SAVE_FACT>(.*?)</SAVE_FACT>", summary_text, re.IGNORECASE))
+    for match in fact_matches:
+        fact_data = match.group(1).strip()
+        if ":" in fact_data:
+            key, val = fact_data.split(":", 1)
+            memory.save_fact(key.strip(), val.strip())
+    summary_text = re.sub(r"<SAVE_FACT>.*?</SAVE_FACT>", "", summary_text, flags=re.IGNORECASE).strip()
+
+    # If LLM output ONLY an action tag with no conversational text, inject friendly phrase
+    if action_triggered and not summary_text and targets_to_launch:
+        summary_text = f"Opening {targets_to_launch[0][0]} for you!"
 
     # Generate high-quality edge-tts neural voice audio for instant playback
     audio_b64 = await generate_edge_tts(summary_text)
-
-    action_triggered = len(action_matches) > 0 and not app_not_found
     auto_close = llm_manager.settings.get("auto_close_panel", False)
 
     await websocket.send_json({
