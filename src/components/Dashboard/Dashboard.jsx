@@ -2,130 +2,81 @@ import React, { useState, useEffect, useRef } from 'react';
 import logoImg from '/logo.png';
 import { saveUserDataToFirebase } from '../../firebase';
 
-const C = {
-  bg:         '#0b0b0b',
-  surface:    '#141414',
-  surfaceAlt: '#1c1c1c',
-  border:     '#2e2e2e',
-  borderAlt:  '#262626',
-  text:       '#ffffff',
-  textSub:    '#888888',
-  textMuted:  '#555555',
-  accent:     '#ffffff',
-  danger:     '#f87171',
-  dangerBg:   '#2a0a0a',
-  dangerBdr:  '#5c1a1a',
+// Design System Tokens (Flow Dark Theme)
+const D = {
+  bg: '#0c0d10',
+  cardBg: '#13151b',
+  cardBgAlt: '#181b22',
+  sidebarBg: '#090a0d',
+  border: 'rgba(255, 255, 255, 0.08)',
+  borderLight: 'rgba(255, 255, 255, 0.04)',
+  borderHover: 'rgba(255, 255, 255, 0.16)',
+  text: '#f8fafc',
+  textSub: '#94a3b8',
+  textMuted: '#64748b',
+  accent: '#f8fafc',
+  accentBg: 'rgba(255, 255, 255, 0.08)',
+  purple: '#a855f7',
+  indigo: '#6366f1',
+  emerald: '#10b981',
+  sky: '#38bdf8',
+  danger: '#ef4444',
+  dangerBg: 'rgba(239, 68, 68, 0.1)',
 };
 
-const inputBase = {
+const inputStyle = {
   width: '100%',
-  height: 56,
-  background: C.surface,
-  border: '1px solid #2e2e2e',
-  borderRadius: 12,
-  padding: '0 20px',
-  color: C.text,
-  fontSize: 14,
+  height: 44,
+  background: '#14161d',
+  border: `1px solid ${D.border}`,
+  borderRadius: 8,
+  padding: '0 14px',
+  color: D.text,
+  fontSize: 13,
   outline: 'none',
-  transition: 'border-color 0.2s',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
-  display: 'block',
+  transition: 'border-color 0.15s ease',
 };
-const textareaBase = {
-  ...inputBase,
-  height: 96,
-  resize: 'none',
-  padding: '14px 20px',
-  lineHeight: 1.5,
-};
-const selectBase = {
-  ...inputBase,
-  cursor: 'pointer',
-  appearance: 'none',
-  WebkitAppearance: 'none',
-  backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")",
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 16px center',
-  paddingRight: 40,
-};
-
-function FocusInput({ style, as: Tag = 'input', children, ...props }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <Tag
-      {...props}
-      style={{ ...style, borderColor: focused ? '#ffffff' : '#2e2e2e' }}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-    >
-      {children}
-    </Tag>
-  );
-}
-
-const Label = ({ children }) => (
-  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: C.textSub, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.7px' }}>
-    {children}
-  </label>
-);
-
-const Field = ({ label, children }) => (
-  <div style={{ display: 'flex', flexDirection: 'column' }}>
-    {label && <Label>{label}</Label>}
-    {children}
-  </div>
-);
-
-const PrimaryBtn = ({ onClick, children, danger = false }) => (
-  <button
-    onClick={onClick}
-    style={{ height: 44, padding: '0 24px', borderRadius: 12, background: danger ? C.dangerBg : C.accent, border: danger ? ('1px solid ' + C.dangerBdr) : 'none', color: danger ? C.danger : '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.15s', fontFamily: 'inherit' }}
-    onMouseEnter={e => { e.currentTarget.style.opacity = '0.82'; }}
-    onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
-  >
-    {children}
-  </button>
-);
-
-const StatusLabel = ({ status, okMsg = 'Saved!' }) => {
-  if (status === 'saving') return <span style={{ color: C.textSub, fontSize: 11 }}>Saving…</span>;
-  if (status === 'ok')     return <span style={{ color: '#34d399', fontSize: 11 }}>✓ {okMsg}</span>;
-  if (status === 'err')    return <span style={{ color: C.danger, fontSize: 11 }}>Something went wrong</span>;
-  return null;
-};
-
-const Card = ({ children }) => (
-  <div style={{ background: C.surfaceAlt, border: ('1px solid ' + C.borderAlt), borderRadius: 16, padding: 24 }}>
-    {children}
-  </div>
-);
 
 export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }) {
-  const [activeTab, setActiveTab] = useState('profile');
-  const [name, setName]               = useState('');
-  const [email, setEmail]             = useState('');
-  const [profileDesc, setProfileDesc] = useState('');
-  const [language, setLanguage]       = useState('English');
-  const [autoClosePanel, setAutoClosePanel] = useState(false);
-  const [saveStatus, setSaveStatus]   = useState('');
-  const [shortcutKey, setShortcutKey] = useState('Ctrl+Shift');
-  const [keyStatus, setKeyStatus]     = useState('');
-  const [apiMode, setApiMode]             = useState('free_key');
-  const [apiProvider, setApiProvider]     = useState('nvidia');
-  const [selectedModel, setSelectedModel] = useState('meta/llama-3.1-8b-instruct');
-  const [geminiKey, setGeminiKey]         = useState('');
-  const [openaiKey, setOpenaiKey]         = useState('');
-  const [groqKey, setGroqKey]             = useState('');
-  const [nvidiaKey, setNvidiaKey]         = useState('');
-  const [ollamaUrl, setOllamaUrl]         = useState('http://localhost:11434');
-  const [engineStatus, setEngineStatus]   = useState('');
-  const [memoryStatus, setMemoryStatus]   = useState('');
-  const [memoryData, setMemoryData]       = useState(null);
+  const [activeNav, setActiveNav] = useState('dictation'); // 'dictation', 'memory', 'engine', 'hotkey', 'knowledge', 'settings'
+  const [searchFilter, setSearchFilter] = useState('');
+  const [copiedId, setCopiedId] = useState(null);
 
-  // ── Profile Settings Popover ──────────────────────────────────────────────
+  // User Profile state
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [profileDesc, setProfileDesc] = useState('');
+  const [language, setLanguage] = useState('English');
+  const [autoClosePanel, setAutoClosePanel] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+
+  // Hotkey state
+  const [shortcutKey, setShortcutKey] = useState('Ctrl+Shift');
+  const [keyStatus, setKeyStatus] = useState('');
+
+  // AI Engine state
+  const [apiMode, setApiMode] = useState('free_key');
+  const [apiProvider, setApiProvider] = useState('nvidia');
+  const [selectedModel, setSelectedModel] = useState('meta/llama-3.1-8b-instruct');
+  const [nvidiaKey, setNvidiaKey] = useState('');
+  const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
+  const [engineStatus, setEngineStatus] = useState('');
+
+  // Memory & Activity state
+  const [memoryData, setMemoryData] = useState(null);
+  const [memoryStatus, setMemoryStatus] = useState('');
+
+  // Profile Popover Menu
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
+
+  // Auto-Updater state
+  const [appVersion, setAppVersion] = useState('1.1.0');
+  const [updateStatus, setUpdateStatus] = useState('idle');
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -133,39 +84,29 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         setShowProfileMenu(false);
       }
     }
-    if (showProfileMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    if (showProfileMenu) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showProfileMenu]);
 
-  // ── Auto-Updater state ────────────────────────────────────────────────────
-  const [appVersion, setAppVersion]       = useState('...');
-  const [updateStatus, setUpdateStatus]   = useState('idle');
-  const [updateInfo, setUpdateInfo]       = useState(null);
-  const [updateErrorMsg, setUpdateErrorMsg] = useState('');
-  const [downloadProgress, setDownloadProgress] = useState(0);
-
-  // Load real app version from Electron
   useEffect(() => {
     window.electronAPI?.getAppVersion?.().then(v => {
       if (v) setAppVersion(v);
-    }).catch(() => setAppVersion('1.0.0'));
+    }).catch(() => setAppVersion('1.1.0'));
   }, []);
 
+  // Fetch memory & history
+  const loadMemory = () => {
+    fetch('http://localhost:8000/memory')
+      .then(r => r.json())
+      .then(data => setMemoryData(data))
+      .catch(() => {});
+  };
+
   useEffect(() => {
-    if (activeTab === 'memory') {
-      const loadMemory = () => {
-        fetch('http://localhost:8000/memory')
-          .then(r => r.json())
-          .then(data => setMemoryData(data))
-          .catch(() => {});
-      };
-      loadMemory();
-      const interval = setInterval(loadMemory, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [activeTab]);
+    loadMemory();
+    const interval = setInterval(loadMemory, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (window.electronAPI?.setOnboardingMode) window.electronAPI.setOnboardingMode();
@@ -174,51 +115,28 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     setProfileDesc(user?.profileDescription || '');
     setLanguage(user?.language || 'English');
     fetch('http://localhost:8000/settings').then(r => r.json()).then(s => {
-      if (s.hotkey)             setShortcutKey(s.hotkey);
+      if (s.hotkey) setShortcutKey(s.hotkey);
       if (s.auto_close_panel !== undefined) setAutoClosePanel(s.auto_close_panel);
-      if (s.mode)               setApiMode(s.mode);
-      if (s.provider)           setApiProvider(s.provider);
-      if (s.model)              setSelectedModel(s.model);
-      if (s.gemini_api_key)     setGeminiKey(s.gemini_api_key);
-      if (s.openai_api_key)     setOpenaiKey(s.openai_api_key);
-      if (s.groq_api_key)       setGroqKey(s.groq_api_key);
-      if (s.nvidia_api_key)     setNvidiaKey(s.nvidia_api_key);
-      if (s.ollama_url)         setOllamaUrl(s.ollama_url);
+      if (s.mode) setApiMode(s.mode);
+      if (s.provider) setApiProvider(s.provider);
+      if (s.model) setSelectedModel(s.model);
+      if (s.nvidia_api_key) setNvidiaKey(s.nvidia_api_key);
+      if (s.ollama_url) setOllamaUrl(s.ollama_url);
     }).catch(() => {});
   }, [user]);
 
-  // Subscribe to auto-updater IPC events from Electron main process
+  // Updater IPC
   useEffect(() => {
     const api = window.electronAPI;
     if (!api) return;
-
-    const cleanupFns = [
-      api.onUpdateAvailable?.((data) => {
-        setUpdateInfo(data);
-        setUpdateStatus('available');
-      }),
-      api.onUpdateNotAvailable?.(() => {
-        setUpdateStatus('up-to-date');
-        setTimeout(() => setUpdateStatus('idle'), 4000);
-      }),
-      api.onDownloadProgress?.((data) => {
-        setDownloadProgress(data.percent || 0);
-        setUpdateStatus('downloading');
-      }),
-      api.onUpdateDownloaded?.((data) => {
-        setUpdateInfo(prev => ({ ...prev, ...data }));
-        setUpdateStatus('downloaded');
-        setDownloadProgress(100);
-      }),
-      api.onUpdateError?.((data) => {
-        console.error('[Update Error]', data?.message);
-        setUpdateErrorMsg(data?.message || 'Update check failed');
-        setUpdateStatus('error');
-        setTimeout(() => setUpdateStatus('idle'), 6000);
-      }),
+    const cleanup = [
+      api.onUpdateAvailable?.((data) => { setUpdateInfo(data); setUpdateStatus('available'); }),
+      api.onUpdateNotAvailable?.(() => { setUpdateStatus('up-to-date'); setTimeout(() => setUpdateStatus('idle'), 4000); }),
+      api.onDownloadProgress?.((data) => { setDownloadProgress(data.percent || 0); setUpdateStatus('downloading'); }),
+      api.onUpdateDownloaded?.((data) => { setUpdateInfo(prev => ({ ...prev, ...data })); setUpdateStatus('downloaded'); }),
+      api.onUpdateError?.(() => { setUpdateStatus('error'); setTimeout(() => setUpdateStatus('idle'), 6000); })
     ].filter(Boolean);
-
-    return () => cleanupFns.forEach(fn => typeof fn === 'function' && fn());
+    return () => cleanup.forEach(fn => fn && fn());
   }, []);
 
   const handleSaveProfile = async () => {
@@ -258,9 +176,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         mode: apiMode,
         provider: apiProvider,
         model: selectedModel,
-        gemini_api_key: geminiKey,
-        openai_api_key: openaiKey,
-        groq_api_key: groqKey,
         nvidia_api_key: nvidiaKey,
         ollama_url: ollamaUrl,
         ollama_model: selectedModel || 'llama3'
@@ -272,65 +187,12 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     setTimeout(() => setEngineStatus(''), 3000);
   };
 
-  const handleResetEngine = async () => {
-    setEngineStatus('saving');
-    setGeminiKey('');
-    setOpenaiKey('');
-    setGroqKey('');
-    setNvidiaKey('');
-    setApiMode('free_key');
-    setApiProvider('nvidia');
-    setSelectedModel('meta/llama-3.1-8b-instruct');
-
-    const resetPayload = {
-      mode: 'free_key',
-      provider: 'nvidia',
-      model: 'meta/llama-3.1-8b-instruct',
-      gemini_api_key: '',
-      openai_api_key: '',
-      groq_api_key: '',
-      nvidia_api_key: '',
-      ollama_url: 'http://localhost:11434',
-      ollama_model: 'llama3'
-    };
-
-    try {
-      await fetch('http://localhost:8000/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(resetPayload)
-      });
-      if (user?.uid) saveUserDataToFirebase(user.uid, { settings: resetPayload });
-      setEngineStatus('reset_ok');
-    } catch { setEngineStatus('err'); }
-    setTimeout(() => setEngineStatus(''), 3000);
-  };
-
-  const handleWipeMemory = async () => {
-    setMemoryStatus('saving');
-    try {
-      await fetch('http://localhost:8000/clear-memory', { method: 'POST' });
-      if (user?.uid) saveUserDataToFirebase(user.uid, { memory: { user_name: name, ai_name: 'Ady', facts: {}, conversation_history: [] } });
-      setMemoryStatus('ok');
-    } catch { setMemoryStatus('err'); }
-    setTimeout(() => setMemoryStatus(''), 4000);
-  };
-
-  const handleClearHistory = async () => {
-    try {
-      await fetch('http://localhost:8000/memory/history', { method: 'DELETE' });
-      setMemoryData(prev => ({ ...prev, conversation_history: [] }));
-      if (user?.uid && memoryData) {
-        saveUserDataToFirebase(user.uid, { memory: { ...memoryData, conversation_history: [] } });
-      }
-    } catch {}
-  };
-
-  const handleDeleteChat = async (index) => {
+  const handleDeleteHistoryItem = async (index) => {
     try {
       await fetch(`http://localhost:8000/memory/history/${index}`, { method: 'DELETE' });
       setMemoryData(prev => {
-        const newHistory = [...prev.conversation_history];
+        if (!prev) return prev;
+        const newHistory = [...(prev.conversation_history || [])];
         newHistory.splice(index, 1);
         const newData = { ...prev, conversation_history: newHistory };
         if (user?.uid) saveUserDataToFirebase(user.uid, { memory: newData });
@@ -339,637 +201,634 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     } catch {}
   };
 
-  const navItems = [
-    { id: 'profile', label: 'Profile & Persona',  accent: '#34d399', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/> },
-    { id: 'hotkey',  label: 'Shortcut Keys',       accent: '#60a5fa', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 0121 9z"/> },
-    { id: 'engine',  label: 'AI Engine & Models',  accent: '#c084fc', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/> },
-    { id: 'memory',  label: 'AI Memory',            accent: '#fb923c', icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></> },
-    { id: 'updates', label: 'App Updates',          accent: '#38bdf8', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/> },
-  ];
+  const handleCopyText = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Filter history
+  const rawHistory = memoryData?.conversation_history || [];
+  const filteredHistory = rawHistory.filter(item => {
+    if (!searchFilter) return true;
+    const q = searchFilter.toLowerCase();
+    return (item.user && item.user.toLowerCase().includes(q)) || (item.assistant && item.assistant.toLowerCase().includes(q));
+  });
+
+  const totalWords = rawHistory.reduce((acc, cur) => acc + (cur.user?.split(' ')?.length || 0) + (cur.assistant?.split(' ')?.length || 0), 0);
+  const factsCount = Object.keys(memoryData?.facts || {}).length;
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: C.bg, display: 'flex', color: C.text, fontFamily: "'Inter', system-ui, sans-serif", overflow: 'hidden', position: 'relative' }}>
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      background: D.bg,
+      display: 'flex',
+      color: D.text,
+      fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+      overflow: 'hidden',
+      userSelect: 'none'
+    }}>
 
-      {/* Floating Window Controls (Top-Right, Seamless without border line) */}
-      <div style={{ position: 'absolute', top: 14, right: 20, display: 'flex', gap: 16, zIndex: 100, WebkitAppRegion: 'no-drag' }}>
-        {[
-          { fn: () => window.electronAPI?.windowMinimize(), d: 'M20 12H4', hover: '#fff' },
-          { fn: () => window.electronAPI?.windowMaximize(), d: 'M4 4h16v16H4z', hover: '#fff' },
-          { fn: () => window.electronAPI?.windowClose(),    d: 'M6 18L18 6M6 6l12 12', hover: '#f87171' },
-        ].map((btn, i) => (
-          <button key={i} onClick={btn.fn} style={{ background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', padding: 4, display: 'flex', transition: 'color 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.color = btn.hover}
-            onMouseLeave={e => e.currentTarget.style.color = C.textMuted}
+      {/* Top Drag & Control Bar */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 40,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 16px',
+        WebkitAppRegion: 'drag',
+        zIndex: 100
+      }}>
+        {/* Left window control icons (Matching Flow reference) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, WebkitAppRegion: 'no-drag' }}>
+          <button
+            onClick={() => setActiveNav('dictation')}
+            style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', display: 'flex', padding: 2 }}
+            title="Toggle Sidebar"
           >
-            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d={btn.d}/></svg>
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 12h16M4 18h7"/></svg>
           </button>
-        ))}
-      </div>
-
-      {/* Drag Area Bar for Top Window Movement */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 120, height: 42, WebkitAppRegion: 'drag', zIndex: 90 }} />
-
-      {/* Sidebar */}
-      <div style={{ width: 236, borderRight: ('1px solid ' + C.border), display: 'flex', flexDirection: 'column', padding: '18px 14px', flexShrink: 0, height: '100vh', boxSizing: 'border-box', position: 'relative', zIndex: 95 }}>
-        
-        {/* Brand Header (Seamless, Top Left) */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px 24px 8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={logoImg} alt="adyber" style={{ width: 20, height: 20, objectFit: 'contain' }} />
-            <span style={{ fontWeight: 800, fontSize: 14, letterSpacing: '-0.3px', color: '#fff' }}>adyber</span>
-          </div>
-          <span style={{ fontSize: 10, color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', padding: '2px 8px', borderRadius: 20, fontFamily: 'monospace', fontWeight: 600 }}>
-            v{appVersion}
-          </span>
+          <button
+            onClick={() => setShowProfileMenu(prev => !prev)}
+            style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', display: 'flex', padding: 2 }}
+            title="Profile"
+          >
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          </button>
         </div>
 
-        {/* Nav Items */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, overflowY: 'auto' }}>
-          {navItems.map(item => {
-            const active = activeTab === item.id;
+        {/* Right window actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, WebkitAppRegion: 'no-drag' }}>
+          <button
+            onClick={() => setActiveNav('settings')}
+            style={{ background: 'none', border: 'none', color: updateStatus === 'available' ? D.sky : D.textMuted, cursor: 'pointer', display: 'flex', padding: 2 }}
+            title={updateStatus === 'available' ? 'Update Available!' : 'Notifications'}
+          >
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          </button>
+          <button onClick={() => window.electronAPI?.windowMinimize()} style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', padding: 2 }} title="Minimize">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"/></svg>
+          </button>
+          <button onClick={() => window.electronAPI?.windowMaximize()} style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', padding: 2 }} title="Maximize">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4h16v16H4z"/></svg>
+          </button>
+          <button onClick={() => window.electronAPI?.windowClose()} style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', padding: 2 }} title="Close">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Left Sidebar (Matching Flow Layout) */}
+      <div style={{
+        width: 220,
+        background: D.sidebarBg,
+        borderRight: `1px solid ${D.border}`,
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '52px 12px 16px 12px',
+        flexShrink: 0,
+        height: '100vh',
+        boxSizing: 'border-box'
+      }}>
+        {/* Brand Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px 18px 8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <span style={{ width: 3, height: 14, background: '#fff', borderRadius: 2 }} />
+            <span style={{ width: 3, height: 18, background: '#fff', borderRadius: 2 }} />
+            <span style={{ width: 3, height: 10, background: '#fff', borderRadius: 2 }} />
+          </div>
+          <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.4px', color: '#fff' }}>Flow</span>
+          <span style={{ fontSize: 10, color: D.textMuted, marginLeft: 2, background: 'rgba(255,255,255,0.05)', padding: '1px 5px', borderRadius: 4 }}>Ady</span>
+        </div>
+
+        {/* Main Nav Items (Exact Flow Layout Structure) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+          {[
+            { id: 'dictation', label: 'Dictation', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/> },
+            { id: 'memory',    label: 'Notetaker',  icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM12 4v1m0 14v1m8-8h-1M5 12H4m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707"/> },
+            { id: 'engine',    label: 'Insights',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/> },
+            { id: 'knowledge', label: 'Dictionary', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/> },
+            { id: 'hotkey',    label: 'Snippets',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.5 8.5M8 12a3 3 0 10-4.242-4.242L6.636 10.636"/> },
+            { id: 'style',     label: 'Style',      icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 6h16M4 12h10M4 18h6"/> },
+            { id: 'transforms',label: 'Transforms', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/> },
+            { id: 'scratchpad',label: 'Scratchpad', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/> }
+          ].map(item => {
+            const active = activeNav === item.id;
             return (
-              <button key={item.id} onClick={() => setActiveTab(item.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: active ? C.surfaceAlt : 'transparent', border: ('1px solid ' + (active ? C.borderAlt : 'transparent')), borderRadius: 10, cursor: 'pointer', textAlign: 'left', color: active ? '#f1f5f9' : C.textSub, fontSize: 12, fontWeight: active ? 600 : 500, transition: 'all 0.15s', fontFamily: 'inherit' }}
-                onMouseEnter={e => { if (!active) { e.currentTarget.style.background = C.surfaceAlt; e.currentTarget.style.color = '#ccc'; }}}
-                onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.textSub; }}}
+              <button
+                key={item.id}
+                onClick={() => setActiveNav(item.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '7px 10px',
+                  borderRadius: 8,
+                  background: active ? '#1a1c23' : 'transparent',
+                  border: 'none',
+                  color: active ? '#ffffff' : D.textSub,
+                  fontSize: 13,
+                  fontWeight: active ? 600 : 400,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease',
+                  fontFamily: 'inherit'
+                }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
               >
-                <svg width="15" height="15" fill="none" stroke={active ? item.accent : C.textSub} viewBox="0 0 24 24">{item.icon}</svg>
-                {item.label}
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {item.icon}
+                </svg>
+                <span>{item.label}</span>
               </button>
             );
           })}
-        </nav>
+        </div>
 
-        {/* Profile Section (Moved to Bottom with Popover Popup on Click) */}
-        <div style={{ position: 'relative', marginTop: 'auto', paddingTop: 12 }} ref={profileMenuRef}>
-          
-          {/* Profile Settings Popover Popup */}
-          {showProfileMenu && (
-            <div style={{
-              position: 'absolute',
-              bottom: '100%',
-              left: 0,
-              right: 0,
-              marginBottom: 10,
-              background: '#161616',
-              border: '1px solid #2e2e2e',
-              borderRadius: 14,
-              boxShadow: '0 16px 40px rgba(0,0,0,0.7)',
-              padding: 6,
-              zIndex: 200,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2,
-              animation: 'popoverIn 0.15s ease-out'
-            }}>
-              
-              {/* Profile Overview in Popup */}
-              <div style={{ padding: '10px 12px', borderBottom: '1px solid #242424', marginBottom: 4 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {name || 'User'}
-                </div>
-                <div style={{ fontSize: 11, color: C.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 2 }}>
-                  {email || 'Account Settings'}
-                </div>
-              </div>
-
-              {/* Action: Open Floating AI Pill */}
-              {onClose && (
-                <button
-                  onClick={() => { setShowProfileMenu(false); onClose(); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#e2e8f0',
-                    fontSize: 12,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'background 0.15s',
-                    fontFamily: 'inherit'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#222'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', flexShrink: 0 }} />
-                  <span>Floating AI Pill</span>
-                </button>
-              )}
-
-              {/* Action: Reset Onboarding */}
-              {onResetOnboarding && (
-                <button
-                  onClick={() => { setShowProfileMenu(false); onResetOnboarding(); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    background: 'transparent',
-                    border: 'none',
-                    color: C.textSub,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s',
-                    fontFamily: 'inherit'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#222'; e.currentTarget.style.color = '#fff'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.textSub; }}
-                >
-                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>Reset Onboarding</span>
-                </button>
-              )}
-
-              {/* Divider */}
-              {onLogout && <div style={{ height: 1, background: '#242424', margin: '4px 0' }} />}
-
-              {/* Action: Sign Out */}
-              {onLogout && (
-                <button
-                  onClick={() => { setShowProfileMenu(false); onLogout(); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    background: 'transparent',
-                    border: 'none',
-                    color: C.danger,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s',
-                    fontFamily: 'inherit'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.color = '#fca5a5'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.danger; }}
-                >
-                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span>Sign Out</span>
-                </button>
-              )}
-
-            </div>
-          )}
-
-          {/* Clickable Profile Card at the Bottom of Sidebar */}
+        {/* Bottom Upgrade to Pro Box (Matching Flow Layout) */}
+        <div style={{
+          background: '#12141a',
+          border: `1px solid ${D.border}`,
+          borderRadius: 10,
+          padding: '12px',
+          marginBottom: 12
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: D.purple }}>Unlimited AI Engine</div>
+          <div style={{ fontSize: 10.5, color: D.textMuted, marginTop: 4, lineHeight: 1.4 }}>
+            Fast NVIDIA NIM Cloud & local offline Ollama active.
+          </div>
           <button
-            onClick={() => setShowProfileMenu(prev => !prev)}
+            onClick={() => setActiveNav('engine')}
             style={{
               width: '100%',
+              marginTop: 8,
+              height: 28,
+              borderRadius: 6,
+              background: '#090a0d',
+              border: `1px solid ${D.border}`,
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            Manage Engine
+          </button>
+        </div>
+
+        {/* Bottom Sidebar Links */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <button
+            onClick={() => onClose && onClose()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '6px 10px',
+              borderRadius: 6,
+              background: 'transparent',
+              border: 'none',
+              color: D.textSub,
+              fontSize: 12,
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={e => e.currentTarget.style.color = D.textSub}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.emerald }} />
+            <span>Open Floating Pill</span>
+          </button>
+
+          <button
+            onClick={() => setActiveNav('settings')}
+            style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '10px 12px',
-              background: showProfileMenu ? C.surfaceAlt : 'rgba(255,255,255,0.02)',
-              border: ('1px solid ' + (showProfileMenu ? C.borderAlt : '#222')),
-              borderRadius: 12,
+              padding: '6px 10px',
+              borderRadius: 6,
+              background: activeNav === 'settings' ? '#1a1c23' : 'transparent',
+              border: 'none',
+              color: activeNav === 'settings' ? '#fff' : D.textSub,
+              fontSize: 12,
               cursor: 'pointer',
-              transition: 'all 0.15s',
-              textAlign: 'left',
-              fontFamily: 'inherit'
+              textAlign: 'left'
             }}
-            onMouseEnter={e => { if (!showProfileMenu) { e.currentTarget.style.background = C.surfaceAlt; e.currentTarget.style.borderColor = C.borderAlt; }}}
-            onMouseLeave={e => { if (!showProfileMenu) { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = '#222'; }}}
+            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={e => e.currentTarget.style.color = activeNav === 'settings' ? '#fff' : D.textSub}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              {user?.userPhoto
-                ? <img src={user.userPhoto} alt="avatar" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                : <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#262626', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: '#e2e8f0', flexShrink: 0 }}>
-                    {(name || 'U').charAt(0).toUpperCase()}
-                  </div>
-              }
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {name || 'User'}
-                </div>
-                <div style={{ fontSize: 10, color: C.textSub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {email || 'Settings'}
-                </div>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <span>Settings</span>
             </div>
-
-            {/* Subtle Chevron / Indicator */}
-            <svg width="14" height="14" fill="none" stroke={C.textMuted} viewBox="0 0 24 24" style={{ transform: showProfileMenu ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0 }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-            </svg>
+            {updateStatus === 'available' && (
+              <span style={{ width: 16, height: 16, borderRadius: '50%', background: D.danger, color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                1
+              </span>
+            )}
           </button>
         </div>
 
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, padding: '48px 56px 40px 56px', overflowY: 'auto', minWidth: 0, height: '100vh', boxSizing: 'border-box' }}>
-        <div style={{ maxWidth: 540 }}>
+      <div style={{
+        flex: 1,
+        height: '100vh',
+        overflowY: 'auto',
+        padding: '52px 32px 32px 32px',
+        boxSizing: 'border-box',
+        background: D.bg
+      }}>
+        <div style={{ maxWidth: 880, margin: '0 auto' }}>
 
-          {/* Profile Tab */}
-          {activeTab === 'profile' && (
-            <>
-              <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.4px' }}>Profile & AI Persona</h2>
-              <p style={{ fontSize: 12, color: C.textSub, marginBottom: 32 }}>Customize your profile so Adyber knows who you are.</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <Field label="Your Name">
-                    <FocusInput as="input" type="text" style={inputBase} value={name} onChange={e => setName(e.target.value)} placeholder="Enter your name" />
-                  </Field>
-                  <Field label="About You / Role">
-                    <FocusInput as="textarea" style={textareaBase} value={profileDesc} onChange={e => setProfileDesc(e.target.value)} placeholder="e.g. student, developer, designer…" />
-                  </Field>
-                  <Field label="Preferred Language">
-                    <FocusInput as="select" style={selectBase} value={language} onChange={e => setLanguage(e.target.value)}>
-                      {['English','Hindi','Spanish','French','German','Japanese'].map(l => <option key={l}>{l}</option>)}
-                    </FocusInput>
-                  </Field>
-                  <Field label="Response Panel Behavior">
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: '#f1f5f9' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={autoClosePanel} 
-                        onChange={e => setAutoClosePanel(e.target.checked)} 
-                        style={{ accentColor: '#10b981', width: 16, height: 16, cursor: 'pointer' }}
-                      />
-                      Auto-close response panel when AI finishes speaking
-                    </label>
-                  </Field>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 4 }}>
-                    <PrimaryBtn onClick={handleSaveProfile}>Save Profile</PrimaryBtn>
-                    <StatusLabel status={saveStatus} />
-                  </div>
-                </div>
-              </>
-            )}
+          {/* VIEW: Dictation & Activity (Default Main Dashboard Matching Flow) */}
+          {(activeNav === 'dictation' || activeNav === 'transforms' || activeNav === 'scratchpad') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              
+              {/* Header Greeting */}
+              <div>
+                <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.4px' }}>
+                  Welcome back, {name || 'Naitik'}
+                </h1>
+              </div>
 
-            {/* Hotkey Tab */}
-            {activeTab === 'hotkey' && (
-              <>
-                <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.4px' }}>Shortcut Keys</h2>
-                <p style={{ fontSize: 12, color: C.textSub, marginBottom: 32 }}>Choose the key combo that pops up your AI Pill.</p>
-                <Card>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', marginBottom: 4 }}>Active Shortcut</div>
-                      <div style={{ fontSize: 11, color: C.textSub }}>Hold to speak to Adyber</div>
-                    </div>
-                    <span style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.25)', color: '#60a5fa', fontFamily: 'monospace', fontWeight: 700, fontSize: 13, padding: '7px 16px', borderRadius: 10 }}>{shortcutKey}</span>
-                  </div>
-                  <div style={{ borderTop: ('1px solid ' + C.border), paddingTop: 20 }}>
-                    <Label>Presets</Label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      {['Ctrl+Shift', 'Ctrl+Space', 'Alt+Space', 'Ctrl+CapsLock'].map(k => {
-                        const active = shortcutKey === k;
-                        return (
-                          <button key={k} onClick={() => handleSaveShortcut(k)}
-                            style={{ background: active ? 'rgba(96,165,250,0.08)' : C.surface, border: ('1px solid ' + (active ? 'rgba(96,165,250,0.3)' : C.border)), color: active ? '#60a5fa' : C.textSub, borderRadius: 12, padding: '11px 16px', fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'monospace', transition: 'all 0.15s' }}
-                            onMouseEnter={e => { if (!active) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#e2e8f0'; }}}
-                            onMouseLeave={e => { if (!active) { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSub; }}}
-                          >
-                            {k}
-                            {active && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#60a5fa' }} />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </Card>
-                <div style={{ marginTop: 16 }}><StatusLabel status={keyStatus} okMsg="Hotkey updated!" /></div>
-              </>
-            )}
-
-            {/* Engine Tab */}
-            {activeTab === 'engine' && (
-              <>
-                <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.4px' }}>AI Engine & Model Configuration</h2>
-                <p style={{ fontSize: 12, color: C.textSub, marginBottom: 24 }}>Choose your preferred AI Provider, Model, and API Credentials.</p>
+              {/* Top Hero Row (Matching Flow Layout: Wide Card + Right Stats Card) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 16 }}>
                 
-                {/* Currently Active Banner */}
-                <Card>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.textSub, textTransform: 'uppercase', letterSpacing: '0.7px' }}>Active AI Status</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, fontWeight: 600 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px #34d399' }} />
-                      <span>{apiMode === 'local_ollama' ? 'Local Offline Ollama' : 'NVIDIA NIM API Key'}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: C.textMuted, fontFamily: 'monospace' }}>
-                      Model: <span style={{ color: C.text }}>{selectedModel || 'Default'}</span>
-                    </div>
-                  </div>
-                </Card>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginTop: 24 }}>
-                  <Field label="Execution Mode">
-                    <FocusInput as="select" style={selectBase} value={apiMode} onChange={e => setApiMode(e.target.value)}>
-                      <option value="free_key">API Key Mode</option>
-                      <option value="local_ollama">100% Offline — Local Ollama</option>
-                    </FocusInput>
-                  </Field>
-
-                  {apiMode === 'free_key' && (
-                    <>
-                      <Field label="NVIDIA Model Selection">
-                        <FocusInput as="select" style={selectBase} value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
-                          <option value="meta/llama-3.1-8b-instruct">NVIDIA Llama 3.1 8B Instruct (Fast & Efficient)</option>
-                          <option value="meta/llama-3.1-70b-instruct">NVIDIA Llama 3.1 70B Instruct (High Performance)</option>
-                          <option value="nvidia/nemotron-4-340b-instruct">NVIDIA Nemotron-4 340B (Max Reasoning)</option>
-                        </FocusInput>
-                      </Field>
-
-                      <Field label="NVIDIA NIM API Key">
-                        <FocusInput as="input" type="password" style={{ ...inputBase, fontFamily: 'monospace', fontSize: 13 }}
-                          value={nvidiaKey}
-                          onChange={e => setNvidiaKey(e.target.value)}
-                          placeholder="Paste your NVIDIA NIM API Key here…" />
-                        <div style={{ marginTop: 6, fontSize: 12 }}>
-                          <a 
-                            href="https://build.nvidia.com/" 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            style={{ color: '#60a5fa', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500 }}
-                            onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-                            onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
-                          >
-                            Get your free NVIDIA NIM API Key ↗
-                          </a>
-                        </div>
-                      </Field>
-                    </>
-                  )}
-
-
-
-                  {apiMode === 'local_ollama' && (
-                    <>
-                      <Field label="Ollama Server URL">
-                        <FocusInput as="input" type="text" style={{ ...inputBase, fontFamily: 'monospace', fontSize: 13 }} value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} />
-                      </Field>
-                      <Field label="Local Ollama Model">
-                        <FocusInput as="select" style={selectBase} value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
-                          <option value="llama3">Llama 3 (Ollama Local)</option>
-                          <option value="mistral">Mistral 7B (Ollama Local)</option>
-                          <option value="phi3">Phi-3 (Ollama Local)</option>
-                          <option value="qwen2.5">Qwen 2.5 (Ollama Local)</option>
-                        </FocusInput>
-                      </Field>
-                    </>
-                  )}
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4, flexWrap: 'wrap' }}>
-                    <PrimaryBtn onClick={handleSaveEngine}>Save Engine Settings</PrimaryBtn>
-                    <button onClick={handleResetEngine}
-                      style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: 12, padding: '12px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = '#ef4444'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'}>
-                      Reset API Keys & Settings
+                {/* Wide Hero Banner */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #101217 0%, #151821 100%)',
+                  border: `1px solid ${D.border}`,
+                  borderRadius: 14,
+                  padding: '24px 28px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    right: -20,
+                    top: -20,
+                    width: 160,
+                    height: 160,
+                    background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15), transparent)',
+                    pointerEvents: 'none'
+                  }} />
+                  <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 6px 0', fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic' }}>
+                    Make Flow sound like <span style={{ fontStyle: 'normal', color: D.purple }}>you</span>
+                  </h2>
+                  <p style={{ fontSize: 12, color: D.textSub, margin: '0 0 16px 0', maxWidth: 360 }}>
+                    Configure custom AI persona, preferred hotkeys ({shortcutKey}), and voice automation.
+                  </p>
+                  <div>
+                    <button
+                      onClick={() => setActiveNav('settings')}
+                      style={{
+                        padding: '7px 18px',
+                        background: '#ffffff',
+                        border: 'none',
+                        borderRadius: 20,
+                        color: '#000000',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'transform 0.15s ease'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      Start now
                     </button>
-                    <StatusLabel status={engineStatus === 'reset_ok' ? 'ok' : engineStatus} okMsg={engineStatus === 'reset_ok' ? 'Engine & API Keys Reset!' : 'Engine saved!'} />
                   </div>
                 </div>
-              </>
-            )}
 
-            {/* Memory Tab */}
-            {activeTab === 'memory' && (
-              <>
-                <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.4px' }}>AI Memory & Knowledge</h2>
-                <p style={{ fontSize: 12, color: C.textSub, marginBottom: 32 }}>Manage persistent facts and conversation history stored in Adyber's brain.</p>
-                <Card>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20 }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 6 }}>Long-Term Memory</div>
-                      <div style={{ fontSize: 12, color: C.textSub, lineHeight: 1.6, maxWidth: 280 }}>
-                        Wipe everything Adyber has learned — name, facts, preferences, and all conversation history. The AI will start completely fresh.
-                      </div>
-                    </div>
-                    <PrimaryBtn onClick={handleWipeMemory} danger>Wipe Memory</PrimaryBtn>
+                {/* Right Stats Card */}
+                <div style={{
+                  background: D.cardBg,
+                  border: `1px solid ${D.border}`,
+                  borderRadius: 14,
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  gap: 12
+                }}>
+                  <div>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
+                      {(totalWords / 1000).toFixed(1)}K
+                    </span>
+                    <span style={{ fontSize: 11, color: D.textMuted, marginLeft: 6 }}>total words</span>
                   </div>
-                  {memoryStatus && (
-                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: ('1px solid ' + C.border) }}>
-                      <StatusLabel status={memoryStatus} okMsg="Memory wiped! Adyber has a fresh brain." />
-                    </div>
-                  )}
-                </Card>
+                  <div>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
+                      0.4s
+                    </span>
+                    <span style={{ fontSize: 11, color: D.textMuted, marginLeft: 6 }}>AI latency</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>
+                      {factsCount}
+                    </span>
+                    <span style={{ fontSize: 11, color: D.textMuted, marginLeft: 6 }}>learned facts</span>
+                  </div>
+                </div>
 
-                {memoryData?.conversation_history?.length > 0 && (
-                  <div style={{ marginTop: 40 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                      <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#e2e8f0' }}>Previous Chats</h3>
-                      <button onClick={handleClearHistory} style={{ background: 'none', border: 'none', color: C.textSub, fontSize: 12, cursor: 'pointer', transition: 'color 0.15s' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = C.textSub}>
-                        Clear All
-                      </button>
+              </div>
+
+              {/* Activity Timeline ("TODAY") Matching Flow Reference Layout */}
+              <div style={{
+                background: D.cardBg,
+                border: `1px solid ${D.border}`,
+                borderRadius: 14,
+                padding: '16px 20px'
+              }}>
+                {/* Header Row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottom: `1px solid ${D.border}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: D.textMuted, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+                    TODAY
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        placeholder="Search timeline..."
+                        value={searchFilter}
+                        onChange={e => setSearchFilter(e.target.value)}
+                        style={{
+                          height: 26,
+                          background: '#0e1014',
+                          border: `1px solid ${D.border}`,
+                          borderRadius: 14,
+                          padding: '0 10px 0 26px',
+                          color: '#fff',
+                          fontSize: 11,
+                          outline: 'none',
+                          width: 140
+                        }}
+                      />
+                      <svg width="12" height="12" fill="none" stroke={D.textMuted} viewBox="0 0 24 24" style={{ position: 'absolute', left: 8, top: 7 }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                      {[...memoryData.conversation_history].reverse().map((chat, idx) => {
-                        const originalIndex = memoryData.conversation_history.length - 1 - idx;
-                        return (
-                        <div key={idx} style={{ background: C.surfaceAlt, border: ('1px solid ' + C.borderAlt), borderRadius: 12, padding: 16, position: 'relative' }}>
-                          <button onClick={() => handleDeleteChat(originalIndex)} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', color: C.textMuted, cursor: 'pointer', padding: 4, display: 'flex', transition: 'color 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = C.textMuted}>
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                          </button>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                            <div style={{ display: 'flex', gap: 8, paddingRight: 24 }}>
-                              {chat.date && <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 12, color: C.textSub }}>{chat.date}</span>}
-                              {chat.time && <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 12, color: C.textSub }}>{chat.time}</span>}
-                              {chat.tool && chat.tool !== 'none' && <span style={{ fontSize: 10, background: 'rgba(96,165,250,0.1)', color: '#60a5fa', padding: '2px 8px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 4 }}>⚡ {chat.tool}</span>}
+                  </div>
+                </div>
+
+                {/* Timeline Entries */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {filteredHistory.length === 0 ? (
+                    <div style={{ padding: '32px 0', textAlign: 'center', color: D.textMuted, fontSize: 12 }}>
+                      No voice prompts recorded yet today. Hold <span style={{ color: D.sky, fontFamily: 'monospace' }}>{shortcutKey}</span> and speak to Ady!
+                    </div>
+                  ) : (
+                    [...filteredHistory].reverse().map((item, idx) => {
+                      const originalIndex = rawHistory.length - 1 - idx;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '80px 1fr auto',
+                            alignItems: 'center',
+                            padding: '14px 0',
+                            borderBottom: idx < filteredHistory.length - 1 ? `1px solid ${D.borderLight}` : 'none',
+                            transition: 'background 0.15s ease'
+                          }}
+                        >
+                          {/* Timestamp */}
+                          <div style={{ fontSize: 11.5, color: D.textMuted }}>
+                            {item.time || '12:00 pm'}
+                          </div>
+
+                          {/* Content */}
+                          <div style={{ paddingRight: 16 }}>
+                            <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.4 }}>
+                              {item.user}
                             </div>
+                            {item.assistant && (
+                              <div style={{ fontSize: 12, color: D.textMuted, marginTop: 4, lineHeight: 1.4 }}>
+                                {item.assistant}
+                              </div>
+                            )}
                           </div>
-                          
-                          <div style={{ marginBottom: 12 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#34d399', marginBottom: 4 }}>You said:</div>
-                            <div style={{ fontSize: 13, color: '#f1f5f9', lineHeight: 1.5 }}>{chat.user}</div>
-                          </div>
-                          
-                          <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#a78bfa', marginBottom: 4 }}>Adyber replied:</div>
-                            <div style={{ fontSize: 13, color: C.textSub, lineHeight: 1.5 }}>{chat.assistant}</div>
+
+                          {/* Micro Action Buttons (Matching Flow: Play, Copy, Delete) */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <button
+                              onClick={() => handleCopyText(item.user, idx)}
+                              style={{ background: 'none', border: 'none', color: copiedId === idx ? D.emerald : D.textMuted, cursor: 'pointer', padding: 4 }}
+                              title="Copy prompt"
+                            >
+                              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteHistoryItem(originalIndex)}
+                              style={{ background: 'none', border: 'none', color: D.textMuted, cursor: 'pointer', padding: 4 }}
+                              title="Delete entry"
+                            >
+                              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
                           </div>
                         </div>
-                        );
-                      })}
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* VIEW: Memory & Insights */}
+          {activeNav === 'memory' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Notetaker & Long-Term Memory</h2>
+              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>All persistent facts, user preferences, and learned web URLs saved in memory.</p>
+
+              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20 }}>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Learned Facts</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {Object.entries(memoryData?.facts || {}).map(([k, v], i) => (
+                    <div key={i} style={{ background: '#0e1014', border: `1px solid ${D.border}`, borderRadius: 8, padding: '10px 12px' }}>
+                      <div style={{ fontSize: 11, color: D.textMuted, fontWeight: 600 }}>{k}</div>
+                      <div style={{ fontSize: 12.5, color: '#fff', marginTop: 2 }}>{v}</div>
                     </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: AI Engine & Models */}
+          {activeNav === 'engine' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>AI Engine & Models</h2>
+              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Configure high-speed NVIDIA NIM Cloud or 100% Offline Local Ollama.</p>
+
+              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>EXECUTION MODE</label>
+                  <select style={inputStyle} value={apiMode} onChange={e => setApiMode(e.target.value)}>
+                    <option value="free_key">NVIDIA NIM Cloud API Key (Fast 0.4s)</option>
+                    <option value="local_ollama">100% Offline Local Ollama</option>
+                  </select>
+                </div>
+
+                {apiMode === 'free_key' ? (
+                  <>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>MODEL</label>
+                      <select style={inputStyle} value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
+                        <option value="meta/llama-3.1-8b-instruct">meta/llama-3.1-8b-instruct (Fast & Accurate)</option>
+                        <option value="meta/llama-3.1-70b-instruct">meta/llama-3.1-70b-instruct (High Reasoning)</option>
+                        <option value="nvidia/nemotron-4-340b-instruct">nvidia/nemotron-4-340b-instruct (Max Capacity)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>NVIDIA NIM API KEY</label>
+                      <input type="password" style={inputStyle} value={nvidiaKey} onChange={e => setNvidiaKey(e.target.value)} placeholder="nvapi-..." />
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>OLLAMA URL</label>
+                    <input type="text" style={inputStyle} value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} />
                   </div>
                 )}
-              </>
-            )}
 
-            {/* Updates Tab */}
-            {activeTab === 'updates' && (
-              <>
-                <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.4px' }}>App Updates</h2>
-                <p style={{ fontSize: 12, color: C.textSub, marginBottom: 32 }}>Keep Adyber up to date with the latest features, fixes, and improvements.</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
+                  <button
+                    onClick={handleSaveEngine}
+                    style={{ height: 36, padding: '0 20px', borderRadius: 8, background: '#fff', border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Save Engine
+                  </button>
+                  {engineStatus === 'ok' && <span style={{ color: D.emerald, fontSize: 12 }}>✓ Engine Saved!</span>}
+                </div>
+              </div>
+            </div>
+          )}
 
-                {/* Current version card */}
-                <Card>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={{ fontSize: 13, color: C.textSub, marginBottom: 6 }}>Installed Version</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-1px' }}>v{appVersion}</span>
-                        {updateStatus === 'up-to-date' && (
-                          <span style={{ fontSize: 11, color: '#34d399', background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
-                            ✓ Up to date
-                          </span>
-                        )}
-                        {updateStatus === 'available' && updateInfo?.version && (
-                          <span style={{ fontSize: 11, color: '#38bdf8', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.25)', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
-                            ↑ v{updateInfo.version} available
-                          </span>
-                        )}
-                        {updateStatus === 'downloaded' && (
-                          <span style={{ fontSize: 11, color: '#a78bfa', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.25)', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
-                            ✓ Ready to install
-                          </span>
-                        )}
-                        {updateStatus === 'error' && (
-                          <span style={{ fontSize: 11, color: C.danger, background: C.dangerBg, border: ('1px solid ' + C.dangerBdr), padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
-                            ✗ Update failed
-                          </span>
-                        )}
+          {/* VIEW: Snippets & Hotkeys */}
+          {activeNav === 'hotkey' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Snippets & Shortcut Keys</h2>
+              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Configure the universal push-to-talk key combo.</p>
+
+              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {['Ctrl+Shift', 'Ctrl+Space', 'Alt+Space', 'Ctrl+CapsLock'].map(k => (
+                    <button
+                      key={k}
+                      onClick={() => handleSaveShortcut(k)}
+                      style={{
+                        padding: '12px',
+                        borderRadius: 8,
+                        background: shortcutKey === k ? 'rgba(56, 189, 248, 0.12)' : '#0e1014',
+                        border: `1px solid ${shortcutKey === k ? D.sky : D.border}`,
+                        color: shortcutKey === k ? D.sky : D.textSub,
+                        fontSize: 13,
+                        fontFamily: 'monospace',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <span>{k}</span>
+                      {shortcutKey === k && <span>✓</span>}
+                    </button>
+                  ))}
+                </div>
+                {keyStatus === 'ok' && <div style={{ marginTop: 12, color: D.emerald, fontSize: 12 }}>✓ Hotkey updated to {shortcutKey}!</div>}
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: Dictionary / Knowledge Base */}
+          {activeNav === 'knowledge' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Dictionary & Knowledge Base</h2>
+              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Discovered domains and web service shortcuts remembered by Ady.</p>
+
+              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {Object.entries(memoryData?.facts || {})
+                    .filter(([k]) => k.startsWith('Website URL'))
+                    .map(([k, v], i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${D.borderLight}` }}>
+                        <span style={{ fontSize: 12.5, color: '#fff' }}>{k.replace('Website URL (', '').replace(')', '')}</span>
+                        <a href={v} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: D.sky, textDecoration: 'none' }}>{v} ↗</a>
                       </div>
-                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
-                        Adyber AI Desktop — NaitikGrover/adyber-ai
-                      </div>
-                    </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
 
-                    {/* Action button — changes based on state */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-                      {(updateStatus === 'idle' || updateStatus === 'up-to-date' || updateStatus === 'error') && (
-                        <PrimaryBtn onClick={() => {
-                          setUpdateStatus('checking');
-                          window.electronAPI?.checkForUpdates?.();
-                        }}>
-                          {updateStatus === 'checking' ? 'Checking...' : 'Check for Updates'}
-                        </PrimaryBtn>
-                      )}
+          {/* VIEW: Settings & Profile */}
+          {(activeNav === 'settings' || activeNav === 'style') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Settings & Persona</h2>
+              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Configure personal profile, voice language, and app auto-updates.</p>
 
-                      {updateStatus === 'checking' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: C.textSub, fontSize: 13 }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                            style={{ animation: 'spin 1s linear infinite' }}>
-                            <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                          </svg>
-                          Checking...
-                        </div>
-                      )}
-
-                      {updateStatus === 'available' && (
-                        <PrimaryBtn onClick={() => {
-                          window.electronAPI?.downloadUpdate?.();
-                          setUpdateStatus('downloading');
-                          setDownloadProgress(0);
-                        }}>
-                          Download & Install
-                        </PrimaryBtn>
-                      )}
-
-                      {updateStatus === 'downloading' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#38bdf8', fontSize: 13, fontWeight: 600 }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                            style={{ animation: 'spin 1s linear infinite' }}>
-                            <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                          </svg>
-                          Downloading...
-                        </div>
-                      )}
-
-                      {updateStatus === 'downloaded' && (
-                        <PrimaryBtn onClick={() => window.electronAPI?.quitAndInstall?.()}>
-                          🔄 Restart Now
-                        </PrimaryBtn>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Download progress bar */}
-                  {updateStatus === 'downloading' && (
-                    <div style={{ marginTop: 24, paddingTop: 20, borderTop: ('1px solid ' + C.border) }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <span style={{ fontSize: 12, color: C.textSub }}>Downloading update...</span>
-                        <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 700, fontFamily: 'monospace' }}>{downloadProgress}%</span>
-                      </div>
-                      <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-                        <div style={{
-                          height: '100%',
-                          width: `${downloadProgress}%`,
-                          background: 'linear-gradient(90deg, #38bdf8, #818cf8)',
-                          borderRadius: 4,
-                          transition: 'width 0.3s ease',
-                          boxShadow: '0 0 10px rgba(56,189,248,0.5)'
-                        }} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Post-download install message */}
-                  {updateStatus === 'downloaded' && updateInfo?.version && (
-                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: ('1px solid ' + C.border) }}>
-                      <div style={{ fontSize: 12, color: '#a78bfa', lineHeight: 1.6 }}>
-                        <strong style={{ color: '#fff' }}>v{updateInfo.version}</strong> is ready to install.
-                        Click <strong>Restart Now</strong> to apply the update instantly.
-                        Your settings and memory are preserved.
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Update available release notes */}
-                  {updateStatus === 'available' && updateInfo?.version && (
-                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: ('1px solid ' + C.border) }}>
-                      <div style={{ fontSize: 12, color: C.textSub, marginBottom: 8 }}>What's new in <span style={{ color: '#38bdf8', fontWeight: 700 }}>v{updateInfo.version}</span></div>
-                      {updateInfo.releaseNotes ? (
-                        <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.7, maxHeight: 100, overflow: 'auto' }}>
-                          {typeof updateInfo.releaseNotes === 'string'
-                            ? updateInfo.releaseNotes.replace(/<[^>]+>/g, '').trim()
-                            : 'See GitHub releases for full changelog.'}
-                        </div>
-                      ) : (
-                        <div style={{ fontSize: 12, color: C.textSub }}>
-                          <a href="https://github.com/NaitikGrover/adyber-ai/releases"
-                            target="_blank" rel="noreferrer"
-                            style={{ color: '#38bdf8', textDecoration: 'none' }}>
-                            View changelog on GitHub →
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </Card>
-
-                {/* Info note */}
-                <div style={{ marginTop: 24, padding: '14px 18px', background: 'rgba(56,189,248,0.04)', border: '1px solid rgba(56,189,248,0.12)', borderRadius: 12 }}>
-                  <div style={{ fontSize: 12, color: C.textSub, lineHeight: 1.6 }}>
-                    <span style={{ color: '#38bdf8', fontWeight: 600 }}>How updates work:</span> Adyber automatically checks for updates when you open the app.
-                    Updates are downloaded in the background and installed when you restart. Your AI memory, settings, and API keys are never affected.
-                  </div>
+              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>NAME</label>
+                  <input type="text" style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Your Name" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>ABOUT YOU</label>
+                  <textarea style={{ ...inputStyle, height: 70, padding: '10px 14px', resize: 'none' }} value={profileDesc} onChange={e => setProfileDesc(e.target.value)} placeholder="Role and background..." />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: D.textMuted, marginBottom: 6 }}>LANGUAGE</label>
+                  <select style={inputStyle} value={language} onChange={e => setLanguage(e.target.value)}>
+                    {['English', 'Hindi', 'Spanish', 'French', 'German', 'Japanese'].map(l => <option key={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input type="checkbox" checked={autoClosePanel} onChange={e => setAutoClosePanel(e.target.checked)} style={{ width: 16, height: 16 }} />
+                  <span style={{ fontSize: 12.5, color: '#fff' }}>Auto-close response panel when AI finishes speaking</span>
                 </div>
 
-                <style>{`
-                  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                  @keyframes popoverIn {
-                    from { opacity: 0; transform: translateY(6px) scale(0.97); }
-                    to { opacity: 1; transform: translateY(0) scale(1); }
-                  }
-                `}</style>
-              </>
-            )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
+                  <button onClick={handleSaveProfile} style={{ height: 36, padding: '0 20px', borderRadius: 8, background: '#fff', border: 'none', color: '#000', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    Save Profile
+                  </button>
+                  {saveStatus === 'ok' && <span style={{ color: D.emerald, fontSize: 12 }}>✓ Saved!</span>}
+                </div>
+              </div>
 
-          </div>
+              {/* Updates Card */}
+              <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Installed Version: v{appVersion}</div>
+                  <div style={{ fontSize: 11.5, color: D.textMuted, marginTop: 2 }}>Automatic updates enabled from GitHub Releases</div>
+                </div>
+                <button
+                  onClick={() => { setUpdateStatus('checking'); window.electronAPI?.checkForUpdates?.(); }}
+                  style={{ height: 32, padding: '0 16px', borderRadius: 6, background: '#1e2129', border: `1px solid ${D.border}`, color: '#fff', fontSize: 12, cursor: 'pointer' }}
+                >
+                  {updateStatus === 'checking' ? 'Checking...' : 'Check for Updates'}
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
-    );
-}
 
+    </div>
+  );
+}
