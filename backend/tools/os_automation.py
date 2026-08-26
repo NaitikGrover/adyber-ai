@@ -269,16 +269,23 @@ class AppLauncher:
                     action_args = known
 
             # --- STEP 3: MEDIA PLAYBACK & SONG SEARCH ---
-            elif any(kw in target_clean for kw in ["play", "music", "song", "spotify", "youtube_music", "youtube music", "yt music", "ytmusic"]):
-                spotify_path = AppLauncher._find_app_in_system("spotify")
-
-                if "spotify" in target_clean or (spotify_path and "youtube" not in target_clean):
-                    action_url = f"spotify:search:{song_query_encoded}" if song_query_encoded else "spotify:"
+            elif any(kw in target_clean for kw in ["youtube music", "yt music", "ytmusic"]):
+                if song_search_clean and song_search_clean not in ["youtube music", "yt music", "ytmusic", "music", "song"]:
+                    action_url = f"https://music.youtube.com/search?q={song_query_encoded}"
                 else:
-                    action_url = f"https://music.youtube.com/search?q={song_query_encoded}" if song_query_encoded else "https://music.youtube.com"
+                    action_url = "https://music.youtube.com"
 
-            elif target_clean in ["youtube", "yt"]:
-                action_url = f"https://www.youtube.com/results?search_query={query_encoded}" if query_encoded else "https://www.youtube.com"
+            elif "spotify" in target_clean:
+                if song_search_clean and song_search_clean != "spotify":
+                    action_url = f"spotify:search:{song_query_encoded}"
+                else:
+                    action_url = "spotify:"
+
+            elif target_clean in ["youtube", "yt"] or any(kw in target_clean for kw in ["play", "song", "music", "listen"]):
+                if song_search_clean and song_search_clean not in ["youtube", "yt", "song", "music", "play"]:
+                    action_url = f"https://www.youtube.com/results?search_query={song_query_encoded}"
+                else:
+                    action_url = "https://www.youtube.com"
 
             elif target_clean in ["chrome", "google chrome", "browser"]:
                 if query:
