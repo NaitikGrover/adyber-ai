@@ -65,7 +65,6 @@ class AppLauncher:
         "vlc": ["cmd.exe", "/c", "vlc"],
         
         # Social & Gaming
-        "discord": [os.path.expandvars(r"%LOCALAPPDATA%\Discord\Update.exe"), "--processStart", "Discord.exe"],
         "whatsapp": "whatsapp:",
         "telegram": "tg:",
         "zoom": "zoommtg:",
@@ -312,15 +311,18 @@ class AppLauncher:
 
         def _run():
             try:
-                if action_url:
-                    print(f"[OS Automation] Opening in Default Browser / URI: {action_url}")
-                    os.startfile(action_url)
-                elif target_path:
+                if target_path:
                     print(f"[OS Automation] Launching via Path/Shortcut: {target_path}")
                     os.startfile(target_path)
+                elif action_url:
+                    print(f"[OS Automation] Opening in Default Browser / URI: {action_url}")
+                    os.startfile(action_url)
                 elif action_args:
                     print(f"[OS Automation] Launching securely with args: {action_args}")
-                    subprocess.Popen(action_args, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    flags = 0
+                    if os.name == 'nt':
+                        flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+                    subprocess.Popen(action_args, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
             except Exception as e:
                 print(f"[OS Automation] Primary launch method failed for {target}: {e}, trying system search fallback...")
                 try:
