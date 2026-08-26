@@ -87,11 +87,11 @@ const Layout = ({ currentStep, totalSteps, eyebrow, title, children, showSkip = 
     {!hideIndicator && <StepIndicator current={currentStep} total={totalSteps} />}
     {showSkip && <Button variant="skip" onClick={onSkip}>Skip</Button>}
     
-    <div className="flex flex-col items-center text-center w-full max-w-lg -mt-4">
+    <div className="flex flex-col items-center text-center w-full max-w-2xl -mt-4">
       {eyebrow && <h4 className="text-[11px] uppercase tracking-[0.25em] text-gray-500 font-bold mb-4">{eyebrow}</h4>}
-      {title && <h1 className="text-3xl font-bold tracking-tight mb-12 leading-tight">{title}</h1>}
+      {title && <h1 className="text-3xl font-bold tracking-tight mb-8 leading-tight">{title}</h1>}
       
-      <div className="flex flex-col items-center w-full gap-6" style={{ marginTop: '50px' }}>
+      <div className="flex flex-col items-center w-full gap-6">
         {children}
       </div>
     </div>
@@ -99,7 +99,7 @@ const Layout = ({ currentStep, totalSteps, eyebrow, title, children, showSkip = 
 );
 
 const ActionRow = ({ disableNext = false, onNext, onPrev, hideBack = false }) => (
-  <div className="flex gap-4 mt-10 w-full max-w-md justify-center">
+  <div className="flex gap-4 mt-8 w-full max-w-md justify-center">
     {!hideBack && <Button variant="secondary" onClick={onPrev} className="w-32 h-12">Back</Button>}
     <Button variant="primary" onClick={onNext} className={`w-36 h-12 ${disableNext ? 'opacity-30 cursor-not-allowed pointer-events-none' : ''}`}>
       Continue
@@ -122,7 +122,10 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
   const [recordedCombo, setRecordedCombo] = useState([]);
   const [pressedKeys, setPressedKeys] = useState({});
   const [isShortcutVerified, setIsShortcutVerified] = useState(false);
-  const TOTAL_STEPS = 8;
+  const [authError, setAuthError] = useState('');
+  const [selectedTheme, setSelectedTheme] = useState('linear_violet');
+  
+  const TOTAL_STEPS = 9;
   
   const [data, setData] = useState({
     username: initialUserData?.username || initialUserData?.name || '',
@@ -155,8 +158,6 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
         } else if (step === 2 && !data.username.trim()) {
           return;
         } else if (step === 5 && !acceptedTerms) {
-          return;
-        } else if (step === 9 && !data.apiMode) {
           return;
         }
 
@@ -235,7 +236,7 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
   }, [isRecordingKey]);
 
   useEffect(() => {
-    if (step !== 7) return;
+    if (step !== 8) return;
 
     const normalize = (key) => {
       const u = key.toUpperCase();
@@ -265,86 +266,47 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
     };
 
     const handleKeyUp = (e) => {
-      if (e.altKey || e.key === 'Alt') {
-        e.preventDefault();
-        e.stopPropagation();
-      }
       const k = normalize(e.key);
       setPressedKeys(prev => ({ ...prev, [k]: false }));
     };
 
-    window.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('keyup', handleKeyUp, true);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('keyup', handleKeyUp, true);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, [step, data.shortcutKey]);
 
-  const [authError, setAuthError] = useState('');
-
   const nextStep = () => setStep(prev => prev + 1);
-  const prevStep = () => setStep(prev => prev - 1);
+  const prevStep = () => setStep(prev => Math.max(1, prev - 1));
 
-  // Extracted from the inline onClick in the final step to keep JSX clean
-  const handleFinishSetup = () => {
-    const targetUid = data.userUid || ('user_' + Date.now());
-    const payload = {
-      uid: targetUid,
-      userUid: targetUid,
-      username: data.username || 'User',
-      name: data.username || 'User',
-      userEmail: data.userEmail || '',
-      userPhoto: data.userPhoto || '',
-      profileDescription: data.profileDescription || '',
-      shortcutKey: data.shortcutKey || 'Ctrl+Shift',
-      language: data.language || 'English',
-      source: data.source || '',
-      apiMode: data.apiMode || 'free_key',
-      apiKey: data.apiKey || '',
-      onboarded: true
+  const handleFinishSetup = async () => {
+    localStorage.setItem('ady_theme', selectedTheme);
+    const finalProfile = {
+      ...data,
+      name: data.username,
+      theme: selectedTheme,
+      shortcutKey: data.shortcutKey || 'Ctrl+Shift'
     };
 
-    // 1. Immediately complete onboarding so UI transitions with 0ms delay
-    onComplete(payload);
-
-    // 2. Fire-and-forget cloud & backend saves in background (non-blocking)
-    Promise.allSettled([
-      saveUserToFirebase(payload),
-      saveUserDataToFirebase(targetUid, {
-        onboarded: true,
-        profile: {
-          name: payload.name,
-          username: payload.username,
-          userEmail: payload.userEmail,
-          userPhoto: payload.userPhoto,
-          profileDescription: payload.profileDescription,
-          shortcutKey: payload.shortcutKey,
-          language: payload.language,
-          source: payload.source
-        },
-        settings: {
-          mode: payload.apiMode,
-          groq_key: payload.apiKey,
-          openai_key: payload.apiKey,
-          gemini_key: payload.apiKey,
-          ollama_url: "http://localhost:11434",
-          ollama_model: "llama3",
-          hotkey: payload.shortcutKey
-        },
-        memory: {
-          user_name: payload.name,
-          ai_name: "Ady",
-          facts: { "User Profile/About": payload.profileDescription },
-          conversation_history: []
-        }
-      }),
-      fetch('http://localhost:8000/save-onboarding-profile', {
+    try {
+      await fetch('http://localhost:8000/save-onboarding-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-    ]).catch(err => console.warn("[Setup Background Save Notice]", err));
+        body: JSON.stringify(finalProfile)
+      });
+    } catch {}
+
+    if (data.userUid) {
+      saveUserDataToFirebase(data.userUid, {
+        onboarded: true,
+        profile: finalProfile,
+        settings: { hotkey: finalProfile.shortcutKey, theme: selectedTheme }
+      });
+    }
+
+    onComplete(finalProfile);
   };
 
   const processUserAuth = async (user) => {
@@ -357,14 +319,14 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
       if (!cloudData) {
         cloudData = await getUserDataFromFirebase(user.uid);
       }
-      console.log("[Onboarding Auth] Cloud data for UID:", user.uid, cloudData);
 
       const isExistingUser = Boolean(cloudData && cloudData.onboarded !== false);
 
       if (isExistingUser) {
-        console.log("[Onboarding Auth] User already onboarded! Restoring cloud profile & bypassing setup...");
-
         const restoredName = cloudData.profile?.name || cloudData.name || cloudData.username || user.name || (user.email ? user.email.split('@')[0] : 'User');
+        const restoredTheme = cloudData.settings?.theme || cloudData.profile?.theme || 'linear_violet';
+        localStorage.setItem('ady_theme', restoredTheme);
+
         const restoredUser = {
           uid: user.uid,
           userUid: user.uid,
@@ -378,12 +340,10 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
           shortcutKey: cloudData.profile?.shortcutKey || cloudData.settings?.hotkey || cloudData.shortcutKey || 'Ctrl+Shift',
           language: cloudData.profile?.language || cloudData.language || 'English',
           source: cloudData.profile?.source || cloudData.source || '',
-          apiMode: cloudData.settings?.mode || cloudData.apiMode || 'free_key',
-          apiKey: cloudData.settings?.gemini_key || cloudData.settings?.openai_key || cloudData.apiKey || '',
+          theme: restoredTheme,
           onboarded: true
         };
 
-        // Fire all backend & Firestore syncs in parallel (non-blocking) for instant UI transition
         Promise.allSettled([
           fetch('http://localhost:8000/save-onboarding-profile', {
             method: 'POST',
@@ -394,11 +354,6 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cloudData.settings)
-          }) : null,
-          cloudData.memory ? fetch('http://localhost:8000/sync-user-memory', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(cloudData.memory)
           }) : null,
           saveUserToFirebase(restoredUser),
           saveUserDataToFirebase(user.uid, { onboarded: true })
@@ -412,7 +367,6 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
       console.error("[Onboarding Auth] Error checking cloud data:", err);
     }
 
-    // New user (not onboarded yet) -> prefill & proceed to Step 2
     const displayName = user.name || (user.email ? user.email.split('@')[0] : '');
     setData(prev => ({
       ...prev,
@@ -491,7 +445,7 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
               )}
               {authError && !isSigningIn && (
                 <p className="text-red-400 text-xs font-medium max-w-xs text-center px-4 mt-1">
-                  {authError.includes('auth/popup-closed-by-user')
+                  {authError.includes('popup-closed-by-user')
                     ? 'Sign-in was cancelled. Try again.'
                     : authError}
                 </p>
@@ -600,7 +554,144 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
           </Layout>
         );
 
+      // STEP 7: THEME SELECTION WITH 3 SKELETON UI PREVIEWS
       case 7: {
+        const themeOptions = [
+          {
+            id: 'linear_violet',
+            name: 'Linear Violet',
+            badge: 'Recommended',
+            bg: '#08090b',
+            panelBg: '#101217',
+            cardBg: '#151821',
+            border: 'rgba(168, 85, 247, 0.3)',
+            heroGlow: 'rgba(168, 85, 247, 0.35)',
+            skeletonBar: '#2a203a',
+            skeletonAccent: '#a855f7',
+            textColor: '#f8fafc',
+            subText: 'Futuristic Dark & Violet'
+          },
+          {
+            id: 'monochrome',
+            name: 'Midnight Dark',
+            badge: 'Monochrome',
+            bg: '#0b0b0b',
+            panelBg: '#141414',
+            cardBg: '#1c1c1c',
+            border: '#333333',
+            heroGlow: 'rgba(255, 255, 255, 0.1)',
+            skeletonBar: '#262626',
+            skeletonAccent: '#ffffff',
+            textColor: '#ffffff',
+            subText: 'Clean High-Contrast'
+          },
+          {
+            id: 'flow_light',
+            name: 'Flow Light',
+            badge: 'Light Theme',
+            bg: '#f4f4f5',
+            panelBg: '#ffffff',
+            cardBg: '#f8fafc',
+            border: '#cbd5e1',
+            heroGlow: 'rgba(15, 23, 42, 0.08)',
+            skeletonBar: '#e2e8f0',
+            skeletonAccent: '#0f172a',
+            textColor: '#0f172a',
+            subText: 'Pure Crisp Daylight'
+          }
+        ];
+
+        return (
+          <Layout currentStep={step} totalSteps={TOTAL_STEPS} eyebrow="APPEARANCE" title="Choose your preferred theme">
+            <div className="grid grid-cols-3 gap-5 w-full max-w-2xl px-2">
+              {themeOptions.map((t) => {
+                const isSelected = selectedTheme === t.id;
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => {
+                      setSelectedTheme(t.id);
+                      localStorage.setItem('ady_theme', t.id);
+                    }}
+                    className={`flex flex-col items-center cursor-pointer transition-all duration-200 group ${
+                      isSelected ? 'scale-105' : 'hover:scale-[1.02] opacity-80 hover:opacity-100'
+                    }`}
+                  >
+                    {/* Square Mockup Card with Skeleton Loading UI */}
+                    <div
+                      className="w-full aspect-[4/3] rounded-2xl p-3 flex flex-col justify-between shadow-2xl relative overflow-hidden transition-all duration-200"
+                      style={{
+                        background: t.bg,
+                        border: `2px solid ${isSelected ? (t.id === 'flow_light' ? '#0f172a' : '#ffffff') : t.border}`,
+                        boxShadow: isSelected ? `0 0 20px ${t.heroGlow}` : '0 8px 24px rgba(0,0,0,0.3)'
+                      }}
+                    >
+                      {/* Floating Panel Shell */}
+                      <div
+                        className="w-full h-full rounded-xl p-2.5 flex flex-col justify-between"
+                        style={{ background: t.panelBg, border: `1px solid ${t.border}` }}
+                      >
+                        {/* Top Row: Skeleton Header + Pill */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full" style={{ background: t.skeletonAccent }} />
+                            <div className="h-2 w-12 rounded-full animate-pulse" style={{ background: t.skeletonBar }} />
+                          </div>
+                          <div className="h-2 w-6 rounded-full" style={{ background: t.skeletonBar }} />
+                        </div>
+
+                        {/* Middle: Hero Card Skeleton with Skeleton text lines */}
+                        <div
+                          className="w-full rounded-lg p-2 flex flex-col gap-1.5"
+                          style={{ background: t.cardBg, border: `1px solid ${t.border}` }}
+                        >
+                          <div className="h-2.5 w-3/4 rounded-full" style={{ background: t.skeletonAccent, opacity: 0.8 }} />
+                          <div className="h-1.5 w-full rounded-full" style={{ background: t.skeletonBar }} />
+                          <div className="h-1.5 w-2/3 rounded-full" style={{ background: t.skeletonBar }} />
+                        </div>
+
+                        {/* Bottom Row: Activity Feed Skeleton items */}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between">
+                            <div className="h-1.5 w-7 rounded-full" style={{ background: t.skeletonBar }} />
+                            <div className="h-1.5 w-16 rounded-full" style={{ background: t.skeletonBar }} />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="h-1.5 w-7 rounded-full" style={{ background: t.skeletonBar }} />
+                            <div className="h-1.5 w-12 rounded-full" style={{ background: t.skeletonBar }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Selected Indicator Badge */}
+                      {isSelected && (
+                        <div
+                          className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-md"
+                          style={{
+                            background: t.id === 'flow_light' ? '#0f172a' : '#ffffff',
+                            color: t.id === 'flow_light' ? '#ffffff' : '#000000'
+                          }}
+                        >
+                          ✓
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Label & Description */}
+                    <div className="mt-3 text-center">
+                      <div className="text-white text-sm font-bold tracking-tight">{t.name}</div>
+                      <div className="text-gray-400 text-xs mt-0.5">{t.subText}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <ActionRow onNext={nextStep} onPrev={prevStep} />
+          </Layout>
+        );
+      }
+
+      case 8: {
         const displayedKeys = isRecordingKey
           ? recordedCombo
           : (data.shortcutKey ? data.shortcutKey.split('+') : ['Ctrl', 'Shift']);
@@ -640,19 +731,17 @@ export default function OnboardingFlow({ onComplete, initialStep = 1, initialUse
         );
       }
 
-      case 8:
+      case 9:
         return (
           <div className="w-full h-full bg-[#0b0b0b] flex flex-col items-center justify-center relative overflow-hidden">
             <Confetti mode="boom" particleCount={120} shapeSize={14} x={0.1} y={0.7} spreadDeg={50} launchSpeed={1.5} colors={['#3b82f6', '#8b5cf6', '#ec4899', '#ffffff']} />
             <Confetti mode="boom" particleCount={120} shapeSize={14} x={0.9} y={0.7} spreadDeg={50} launchSpeed={1.5} colors={['#3b82f6', '#8b5cf6', '#ec4899', '#ffffff']} />
 
-            {/* Centered heading block */}
             <div className="flex flex-col items-center z-10" style={{ marginBottom: '0' }}>
               <h1 className="text-4xl font-bold tracking-tighter text-white" style={{ marginBottom: '8px' }}>You're all set.</h1>
-              <p className="text-gray-500 text-sm">Ady is ready to assist you.</p>
+              <p className="text-gray-500 text-sm">Ady is ready to assist you in {selectedTheme === 'linear_violet' ? 'Linear Violet' : selectedTheme === 'monochrome' ? 'Midnight Dark' : 'Flow Light'} theme.</p>
             </div>
 
-            {/* Button pinned below center */}
             <div className="absolute z-10" style={{ top: 'calc(50% + 80px)' }}>
               <Button variant="primary" className="w-56 font-bold" onClick={handleFinishSetup}>Finish Setup</Button>
             </div>

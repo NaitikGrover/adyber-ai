@@ -2,35 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import logoImg from '/logo.png';
 import { saveUserDataToFirebase } from '../../firebase';
 
-// 4 Curated Themes
+// 3 Curated Themes (Linear Violet default, Midnight Dark, Flow Light)
 const THEMES = {
-  monochrome: {
-    name: 'Midnight Monochrome',
-    badge: 'Default',
-    preview: ['#0b0b0b', '#141414', '#ffffff'],
-    shellBg: '#0b0b0b',
-    panelBg: '#141414',
-    cardBg: '#1c1c1c',
-    cardHover: '#222222',
-    inputBg: '#141414',
-    border: '#262626',
-    borderInput: '#2e2e2e',
-    text: '#ffffff',
-    textSub: '#888888',
-    textMuted: '#555555',
-    accent: '#ffffff',
-    accentText: '#000000',
-    heroBg: '#1c1c1c',
-    heroTitleColor: '#ffffff',
-    heroAccent: '#ffffff',
-    heroFont: "'Inter', sans-serif",
-    heroStyle: 'normal',
-    danger: '#f87171',
-    isLight: false
-  },
   linear_violet: {
     name: 'Linear Violet',
-    badge: 'Futuristic',
+    badge: 'Default',
     preview: ['#08090b', '#101217', '#a855f7'],
     shellBg: '#08090b',
     panelBg: '#101217',
@@ -52,32 +28,32 @@ const THEMES = {
     danger: '#ef4444',
     isLight: false
   },
-  cyber_emerald: {
-    name: 'Cyber Emerald',
-    badge: 'Matrix',
-    preview: ['#060e0a', '#0b1913', '#10b981'],
-    shellBg: '#060e0a',
-    panelBg: '#0b1913',
-    cardBg: '#10241b',
-    cardHover: '#152e23',
-    inputBg: '#07120d',
-    border: 'rgba(16, 185, 129, 0.18)',
-    borderInput: 'rgba(16, 185, 129, 0.25)',
-    text: '#f0fdf4',
-    textSub: '#86efac',
-    textMuted: '#4ade80',
-    accent: '#10b981',
-    accentText: '#022c22',
-    heroBg: 'linear-gradient(135deg, #060e0a 0%, #10241b 100%)',
-    heroTitleColor: '#f0fdf4',
-    heroAccent: '#10b981',
+  monochrome: {
+    name: 'Midnight Dark',
+    badge: 'Monochrome',
+    preview: ['#0b0b0b', '#141414', '#ffffff'],
+    shellBg: '#0b0b0b',
+    panelBg: '#141414',
+    cardBg: '#1c1c1c',
+    cardHover: '#222222',
+    inputBg: '#141414',
+    border: '#262626',
+    borderInput: '#2e2e2e',
+    text: '#ffffff',
+    textSub: '#888888',
+    textMuted: '#555555',
+    accent: '#ffffff',
+    accentText: '#000000',
+    heroBg: '#1c1c1c',
+    heroTitleColor: '#ffffff',
+    heroAccent: '#ffffff',
     heroFont: "'Inter', sans-serif",
     heroStyle: 'normal',
-    danger: '#ef4444',
+    danger: '#f87171',
     isLight: false
   },
   flow_light: {
-    name: 'Flow Pure Light',
+    name: 'Flow Light',
     badge: 'Clean Light',
     preview: ['#f4f4f5', '#ffffff', '#0f172a'],
     shellBg: '#f4f4f5',
@@ -103,12 +79,12 @@ const THEMES = {
 };
 
 export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }) {
-  const [themeKey, setThemeKey] = useState(() => localStorage.getItem('ady_theme') || 'monochrome');
+  const [themeKey, setThemeKey] = useState(() => localStorage.getItem('ady_theme') || 'linear_violet');
   const [activeNav, setActiveNav] = useState('dictation');
   const [searchFilter, setSearchFilter] = useState('');
   const [copiedId, setCopiedId] = useState(null);
 
-  const C = THEMES[themeKey] || THEMES.monochrome;
+  const C = THEMES[themeKey] || THEMES.linear_violet;
 
   const handleSelectTheme = (key) => {
     setThemeKey(key);
@@ -731,13 +707,13 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
-          {/* VIEW: Style & Themes (Dedicated Theme Switcher) */}
+          {/* VIEW: Style & Themes (Theme Switcher) */}
           {(activeNav === 'style') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Color Themes & Aesthetics</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Choose your preferred look and feel for Adyber.</p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                 {Object.entries(THEMES).map(([key, item]) => {
                   const active = themeKey === key;
                   return (
@@ -761,21 +737,20 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                       onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: item.text }}>{item.name}</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 600, color: item.textSub, background: item.cardBg, padding: '2px 8px', borderRadius: 6, border: `1px solid ${item.border}` }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 700, color: item.text }}>{item.name}</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: item.textSub, background: item.cardBg, padding: '2px 6px', borderRadius: 4, border: `1px solid ${item.border}` }}>
                           {item.badge}
                         </span>
                       </div>
 
-                      {/* Visual Palette Preview Dots */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         {item.preview.map((color, i) => (
-                          <span key={i} style={{ width: 22, height: 22, borderRadius: '50%', background: color, border: '1px solid rgba(128,128,128,0.3)' }} />
+                          <span key={i} style={{ width: 18, height: 18, borderRadius: '50%', background: color, border: '1px solid rgba(128,128,128,0.3)' }} />
                         ))}
                       </div>
 
                       {active && (
-                        <div style={{ fontSize: 11.5, fontWeight: 700, color: item.isLight ? '#0f172a' : '#ffffff' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: item.isLight ? '#0f172a' : '#ffffff' }}>
                           ✓ Active Theme
                         </div>
                       )}
@@ -923,7 +898,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               {/* Theme Switcher inside Settings */}
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
                 <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 12 }}>THEME SELECTION</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   {Object.entries(THEMES).map(([k, t]) => (
                     <button
                       key={k}
@@ -934,7 +909,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                         background: t.panelBg,
                         border: `2px solid ${themeKey === k ? (t.isLight ? '#0f172a' : '#ffffff') : t.border}`,
                         color: t.text,
-                        fontSize: 12.5,
+                        fontSize: 12,
                         fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
@@ -943,7 +918,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 14, height: 14, borderRadius: '50%', background: t.accent }} />
+                        <span style={{ width: 14, height: 14, borderRadius: '50%', background: t.preview[2] }} />
                         <span>{t.name}</span>
                       </div>
                       {themeKey === k && <span>✓</span>}
