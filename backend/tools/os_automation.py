@@ -65,6 +65,7 @@ class AppLauncher:
         "vlc": ["cmd.exe", "/c", "vlc"],
         
         # Social & Gaming
+        "discord": os.path.expandvars(r"%APPDATA%\Microsoft\Windows\Start Menu\Programs\Discord.lnk"),
         "whatsapp": "whatsapp:",
         "telegram": "tg:",
         "zoom": "zoommtg:",
@@ -127,6 +128,11 @@ class AppLauncher:
         "linkedin": "https://www.linkedin.com",
         "facebook": "https://www.facebook.com",
         "twitch": "https://www.twitch.tv",
+        "kick": "https://kick.com",
+        "kick.com": "https://kick.com",
+        "kick streaming": "https://kick.com",
+        "kik": "https://kick.com",
+        "kik.com": "https://kick.com",
         "discord": "https://discord.com/app",
         "whatsapp": "https://web.whatsapp.com",
         "spotify": "https://open.spotify.com",
