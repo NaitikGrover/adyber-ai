@@ -53,8 +53,8 @@ const THEMES = {
     isLight: false
   },
   flow_light: {
-    name: 'Flow Light',
-    badge: 'Clean Light',
+    name: 'Daylight Clean',
+    badge: 'Light Theme',
     preview: ['#f4f4f5', '#ffffff', '#0f172a'],
     shellBg: '#f4f4f5',
     panelBg: '#ffffff',
@@ -80,7 +80,7 @@ const THEMES = {
 
 export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }) {
   const [themeKey, setThemeKey] = useState(() => localStorage.getItem('ady_theme') || 'linear_violet');
-  const [activeNav, setActiveNav] = useState('dictation');
+  const [activeNav, setActiveNav] = useState('activity'); // 'activity', 'memory', 'engine', 'knowledge', 'hotkey', 'style', 'settings'
   const [searchFilter, setSearchFilter] = useState('');
   const [copiedId, setCopiedId] = useState(null);
 
@@ -187,14 +187,14 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     setSaveStatus('saving');
     try {
       await fetch('http://localhost:8000/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ auto_close_panel: autoClosePanel }) });
-      await fetch('http://localhost:8000/save-onboarding-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name, name, profileDescription: profileDesc, language, shortcutKey }) });
+      await fetch('http://localhost:8000/save-onboarding-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: name, name, profileDescription: profileDesc, language, shortcutKey, theme: themeKey }) });
       const saved = JSON.parse(localStorage.getItem('ady_user') || '{}');
-      localStorage.setItem('ady_user', JSON.stringify({ ...saved, name, username: name, profileDescription: profileDesc, language }));
+      localStorage.setItem('ady_user', JSON.stringify({ ...saved, name, username: name, profileDescription: profileDesc, language, theme: themeKey }));
       if (user?.uid) {
         saveUserDataToFirebase(user.uid, {
           onboarded: true,
-          profile: { name, username: name, profileDescription: profileDesc, language, shortcutKey },
-          settings: { auto_close_panel: autoClosePanel },
+          profile: { name, username: name, profileDescription: profileDesc, language, shortcutKey, theme: themeKey },
+          settings: { auto_close_panel: autoClosePanel, theme: themeKey },
           memory: { user_name: name, ai_name: 'Ady', facts: { 'User Profile/About': profileDesc || '' } }
         });
       }
@@ -273,7 +273,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     return (item.user && item.user.toLowerCase().includes(q)) || (item.assistant && item.assistant.toLowerCase().includes(q));
   });
 
-  const totalWords = rawHistory.reduce((acc, cur) => acc + (cur.user?.split(' ')?.length || 0) + (cur.assistant?.split(' ')?.length || 0), 0);
+  const totalQueries = rawHistory.length;
   const factsCount = Object.keys(memoryData?.facts || {}).length;
 
   return (
@@ -307,7 +307,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         {/* Left window control icons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, WebkitAppRegion: 'no-drag' }}>
           <button
-            onClick={() => setActiveNav('dictation')}
+            onClick={() => setActiveNav('activity')}
             style={{ background: 'none', border: 'none', color: C.textSub, cursor: 'pointer', display: 'flex', padding: 2 }}
             title="Toggle Sidebar"
           >
@@ -316,7 +316,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           <button
             onClick={() => setShowProfileMenu(prev => !prev)}
             style={{ background: 'none', border: 'none', color: C.textSub, cursor: 'pointer', display: 'flex', padding: 2 }}
-            title="Profile"
+            title="Profile Menu"
           >
             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
           </button>
@@ -343,9 +343,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         </div>
       </div>
 
-      {/* Left Sidebar */}
+      {/* Left Sidebar (Tailored for Adyber Voice Assistant) */}
       <div style={{
-        width: 215,
+        width: 220,
         background: 'transparent',
         border: 'none',
         display: 'flex',
@@ -357,26 +357,22 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
       }}>
         {/* Brand Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 6px 18px 6px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <span style={{ width: 3, height: 14, background: C.text, borderRadius: 2 }} />
-            <span style={{ width: 3, height: 18, background: C.text, borderRadius: 2 }} />
-            <span style={{ width: 3, height: 10, background: C.text, borderRadius: 2 }} />
-          </div>
-          <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.4px', color: C.text }}>Flow</span>
-          <span style={{ fontSize: 10, color: C.textMuted, marginLeft: 2, background: C.cardBg, border: `1px solid ${C.border}`, padding: '1px 5px', borderRadius: 4 }}>Ady</span>
+          <img src={logoImg} alt="Adyber" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+          <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.4px', color: C.text }}>Adyber</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.textSub, background: C.cardBg, border: `1px solid ${C.border}`, padding: '1px 6px', borderRadius: 4 }}>
+            Ady
+          </span>
         </div>
 
-        {/* Main Nav Items */}
+        {/* Main Assistant Nav Items */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
           {[
-            { id: 'dictation', label: 'Dictation', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/> },
-            { id: 'memory',    label: 'Notetaker',  icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM12 4v1m0 14v1m8-8h-1M5 12H4m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707"/> },
-            { id: 'engine',    label: 'Insights',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/> },
-            { id: 'knowledge', label: 'Dictionary', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/> },
-            { id: 'hotkey',    label: 'Snippets',   icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.5 8.5M8 12a3 3 0 10-4.242-4.242L6.636 10.636"/> },
-            { id: 'style',     label: 'Style & Themes', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 21a4 4 0 01-4-4 5 5 0 012.38-4.27 4.97 4.97 0 012.62-.73c1.76 0 3.37.91 4.3 2.3A5 5 0 0119 17a4 4 0 01-4 4H7zM12 3v4m0 0l-2-2m2 2l2-2"/> },
-            { id: 'transforms',label: 'Transforms', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/> },
-            { id: 'scratchpad',label: 'Scratchpad', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/> }
+            { id: 'activity',  label: 'Voice & Activity', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/> },
+            { id: 'memory',    label: 'Long-Term Memory', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/> },
+            { id: 'engine',    label: 'AI Engine & Models', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M13 10V3L4 14h7v7l9-11h-7z"/> },
+            { id: 'knowledge', label: 'Web & Domains', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/> },
+            { id: 'hotkey',    label: 'Shortcut Keys', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/> },
+            { id: 'style',     label: 'Appearance & Themes', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7 21a4 4 0 01-4-4 5 5 0 012.38-4.27 4.97 4.97 0 012.62-.73c1.76 0 3.37.91 4.3 2.3A5 5 0 0119 17a4 4 0 01-4 4H7zM12 3v4m0 0l-2-2m2 2l2-2"/> }
           ].map(item => {
             const active = activeNav === item.id;
             return (
@@ -387,7 +383,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
-                  padding: '7px 10px',
+                  padding: '8px 10px',
                   borderRadius: 8,
                   background: active ? C.cardBg : 'transparent',
                   border: `1px solid ${active ? C.border : 'transparent'}`,
@@ -411,7 +407,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           })}
         </div>
 
-        {/* Bottom Tier Status Card */}
+        {/* Bottom Engine Status Card */}
         <div style={{
           background: C.cardBg,
           border: `1px solid ${C.border}`,
@@ -419,9 +415,12 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           padding: '12px',
           marginBottom: 12
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>Unlimited AI Engine</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>AI Status</div>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
+          </div>
           <div style={{ fontSize: 10.5, color: C.textSub, marginTop: 4, lineHeight: 1.4 }}>
-            NVIDIA NIM Cloud & Local Ollama active.
+            {apiMode === 'local_ollama' ? 'Local Ollama (Offline)' : 'NVIDIA NIM (0.4s Ultra-Fast)'}
           </div>
           <button
             onClick={() => setActiveNav('engine')}
@@ -438,7 +437,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               cursor: 'pointer'
             }}
           >
-            Manage Engine
+            Configure Engine
           </button>
         </div>
 
@@ -463,7 +462,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             onMouseLeave={e => e.currentTarget.style.color = C.textSub}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
-            <span>Open Floating Pill</span>
+            <span>Open Floating AI Pill</span>
           </button>
 
           <button
@@ -514,8 +513,8 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
       }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
 
-          {/* VIEW: Dictation & Activity (Main Flow Dashboard) */}
-          {(activeNav === 'dictation' || activeNav === 'transforms' || activeNav === 'scratchpad') && (
+          {/* VIEW: Voice & Activity (Main Assistant Dashboard) */}
+          {activeNav === 'activity' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
               
               {/* Greeting */}
@@ -525,10 +524,10 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 </h1>
               </div>
 
-              {/* Hero Row: Wide Card + Right Stats Card */}
+              {/* Hero Row: Wide Assistant Card + Right Stats Card */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 190px', gap: 16 }}>
                 
-                {/* Wide Banner */}
+                {/* Wide Assistant Banner */}
                 <div style={{
                   background: C.heroBg,
                   border: `1px solid ${C.border}`,
@@ -548,14 +547,14 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                     fontFamily: C.heroFont,
                     fontStyle: C.heroStyle
                   }}>
-                    Make Flow sound like <span style={{ fontStyle: 'normal', color: C.heroAccent }}>you</span>
+                    Your Always-On <span style={{ fontStyle: 'normal', color: C.heroAccent }}>AI Assistant</span>
                   </h2>
-                  <p style={{ fontSize: 12, color: C.textSub, margin: '0 0 16px 0', maxWidth: 380 }}>
-                    Configure custom AI persona, preferred hotkeys ({shortcutKey}), and voice automation.
+                  <p style={{ fontSize: 12, color: C.textSub, margin: '0 0 16px 0', maxWidth: 400, lineHeight: 1.4 }}>
+                    Trigger Ady anytime via <span style={{ color: C.text, fontFamily: 'monospace', fontWeight: 600 }}>{shortcutKey}</span>. Ask questions, search the live web with citations, or control apps hands-free.
                   </p>
                   <div>
                     <button
-                      onClick={() => setActiveNav('settings')}
+                      onClick={() => onClose && onClose()}
                       style={{
                         padding: '8px 20px',
                         background: C.accent,
@@ -570,12 +569,12 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                       onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                     >
-                      Start now
+                      Start Voice Chat
                     </button>
                   </div>
                 </div>
 
-                {/* Right Stats Card */}
+                {/* Right Assistant Stats Card */}
                 <div style={{
                   background: C.cardBg,
                   border: `1px solid ${C.border}`,
@@ -588,15 +587,15 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 }}>
                   <div>
                     <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
-                      {(totalWords / 1000).toFixed(1)}K
+                      0.4s
                     </span>
-                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>total words</span>
+                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>response time</span>
                   </div>
                   <div>
                     <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
-                      0.4s
+                      {totalQueries}
                     </span>
-                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>AI latency</span>
+                    <span style={{ fontSize: 11, color: C.textSub, marginLeft: 6 }}>voice queries</span>
                   </div>
                   <div>
                     <span style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: '-0.5px' }}>
@@ -608,7 +607,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
 
               </div>
 
-              {/* Activity Timeline ("TODAY") */}
+              {/* Activity Timeline ("RECENT CONVERSATIONS") */}
               <div style={{
                 background: C.cardBg,
                 border: `1px solid ${C.border}`,
@@ -618,13 +617,13 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 {/* Header Row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottom: `1px solid ${C.border}` }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: C.textSub, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-                    TODAY
+                    RECENT CONVERSATIONS
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ position: 'relative' }}>
                       <input
                         type="text"
-                        placeholder="Search timeline..."
+                        placeholder="Search chats..."
                         value={searchFilter}
                         onChange={e => setSearchFilter(e.target.value)}
                         style={{
@@ -649,8 +648,8 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 {/* Timeline Entries */}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {filteredHistory.length === 0 ? (
-                    <div style={{ padding: '32px 0', textAlign: 'center', color: C.textSub, fontSize: 12 }}>
-                      No voice prompts recorded yet today. Hold <span style={{ color: C.text, fontFamily: 'monospace' }}>{shortcutKey}</span> and speak to Ady!
+                    <div style={{ padding: '36px 0', textAlign: 'center', color: C.textSub, fontSize: 12 }}>
+                      No voice prompts recorded yet. Press <span style={{ color: C.text, fontFamily: 'monospace', fontWeight: 600 }}>{shortcutKey}</span> to start talking to Ady!
                     </div>
                   ) : (
                     [...filteredHistory].reverse().map((item, idx) => {
@@ -660,23 +659,24 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                           key={idx}
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: '80px 1fr auto',
-                            alignItems: 'center',
+                            gridTemplateColumns: '70px 1fr auto',
+                            alignItems: 'flex-start',
                             padding: '14px 0',
-                            borderBottom: idx < filteredHistory.length - 1 ? `1px solid ${C.border}` : 'none'
+                            borderBottom: idx < filteredHistory.length - 1 ? `1px solid ${C.border}` : 'none',
+                            gap: 12
                           }}
                         >
-                          <div style={{ fontSize: 11.5, color: C.textSub }}>
+                          <div style={{ fontSize: 11, color: C.textSub, paddingTop: 2 }}>
                             {item.time || '12:00 pm'}
                           </div>
 
-                          <div style={{ paddingRight: 16 }}>
-                            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.4 }}>
-                              {item.user}
+                          <div>
+                            <div style={{ fontSize: 13, color: C.text, fontWeight: 500, lineHeight: 1.4 }}>
+                              💬 {item.user}
                             </div>
                             {item.assistant && (
-                              <div style={{ fontSize: 12, color: C.textSub, marginTop: 4, lineHeight: 1.4 }}>
-                                {item.assistant}
+                              <div style={{ fontSize: 12, color: C.textSub, marginTop: 4, lineHeight: 1.4, paddingLeft: 16, borderLeft: `2px solid ${C.border}` }}>
+                                🤖 {item.assistant}
                               </div>
                             )}
                           </div>
@@ -692,7 +692,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                             <button
                               onClick={() => handleDeleteHistoryItem(originalIndex)}
                               style={{ background: 'none', border: 'none', color: C.textSub, cursor: 'pointer', padding: 4 }}
-                              title="Delete entry"
+                              title="Delete conversation"
                             >
                               <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
@@ -707,11 +707,139 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
-          {/* VIEW: Style & Themes (Theme Switcher) */}
-          {(activeNav === 'style') && (
+          {/* VIEW: Long-Term Memory */}
+          {activeNav === 'memory' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Color Themes & Aesthetics</h2>
-              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Choose your preferred look and feel for Adyber.</p>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Long-Term Memory</h2>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Persistent facts, user preferences, and personalized details Ady has remembered.</p>
+
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Learned Facts & Preferences</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {Object.entries(memoryData?.facts || {}).map(([k, v], i) => (
+                    <div key={i} style={{ background: C.panelBg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px' }}>
+                      <div style={{ fontSize: 11, color: C.textSub, fontWeight: 600 }}>{k}</div>
+                      <div style={{ fontSize: 13, color: C.text, marginTop: 4, fontWeight: 500 }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: AI Engine & Models */}
+          {activeNav === 'engine' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>AI Engine & Models</h2>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure high-speed NVIDIA NIM Cloud (0.4s) or 100% Offline Local Ollama.</p>
+
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>EXECUTION MODE</label>
+                  <select style={inputStyle} value={apiMode} onChange={e => setApiMode(e.target.value)}>
+                    <option value="free_key">NVIDIA NIM Cloud API Key (Ultra-Fast 0.4s)</option>
+                    <option value="local_ollama">100% Offline Local Ollama</option>
+                  </select>
+                </div>
+
+                {apiMode === 'free_key' ? (
+                  <>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>MODEL</label>
+                      <select style={inputStyle} value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
+                        <option value="meta/llama-3.1-8b-instruct">meta/llama-3.1-8b-instruct (Fast & Accurate)</option>
+                        <option value="meta/llama-3.1-70b-instruct">meta/llama-3.1-70b-instruct (High Reasoning)</option>
+                        <option value="nvidia/nemotron-4-340b-instruct">nvidia/nemotron-4-340b-instruct (Max Capacity)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>NVIDIA NIM API KEY</label>
+                      <input type="password" style={inputStyle} value={nvidiaKey} onChange={e => setNvidiaKey(e.target.value)} placeholder="nvapi-..." />
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>OLLAMA URL</label>
+                    <input type="text" style={inputStyle} value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} />
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
+                  <button
+                    onClick={handleSaveEngine}
+                    style={{ height: 38, padding: '0 22px', borderRadius: 10, background: C.accent, border: 'none', color: C.accentText, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Save Engine
+                  </button>
+                  {engineStatus === 'ok' && <span style={{ color: '#10b981', fontSize: 12 }}>✓ Engine Saved!</span>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: Web & Domains */}
+          {activeNav === 'knowledge' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Web Search & Domain Shortcuts</h2>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Learned website URLs and dynamic web tools saved by Ady.</p>
+
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {Object.entries(memoryData?.facts || {})
+                    .filter(([k]) => k.startsWith('Website URL'))
+                    .map(([k, v], i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
+                        <span style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{k.replace('Website URL (', '').replace(')', '')}</span>
+                        <a href={v} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: C.text, textDecoration: 'underline' }}>{v} ↗</a>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: Shortcut Keys */}
+          {activeNav === 'hotkey' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Shortcut Keys</h2>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure the universal push-to-talk key combination to summon Ady.</p>
+
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {['Ctrl+Shift', 'Ctrl+Space', 'Alt+Space', 'Ctrl+CapsLock'].map(k => (
+                    <button
+                      key={k}
+                      onClick={() => handleSaveShortcut(k)}
+                      style={{
+                        padding: '12px',
+                        borderRadius: 10,
+                        background: shortcutKey === k ? C.panelBg : C.cardBg,
+                        border: `1px solid ${shortcutKey === k ? (C.isLight ? '#0f172a' : '#ffffff') : C.border}`,
+                        color: shortcutKey === k ? C.text : C.textSub,
+                        fontSize: 13,
+                        fontFamily: 'monospace',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <span>{k}</span>
+                      {shortcutKey === k && <span>✓</span>}
+                    </button>
+                  ))}
+                </div>
+                {keyStatus === 'ok' && <div style={{ marginTop: 12, color: '#10b981', fontSize: 12 }}>✓ Hotkey updated to {shortcutKey}!</div>}
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: Appearance & Themes */}
+          {activeNav === 'style' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Appearance & Themes</h2>
+              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Choose your preferred color aesthetic for Adyber.</p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                 {Object.entries(THEMES).map(([key, item]) => {
@@ -761,183 +889,23 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
             </div>
           )}
 
-          {/* VIEW: Memory & Insights */}
-          {activeNav === 'memory' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Notetaker & Long-Term Memory</h2>
-              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Persistent facts, user preferences, and learned web URLs saved in memory.</p>
-
-              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Learned Facts</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {Object.entries(memoryData?.facts || {}).map(([k, v], i) => (
-                    <div key={i} style={{ background: C.panelBg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 11, color: C.textSub, fontWeight: 600 }}>{k}</div>
-                      <div style={{ fontSize: 12.5, color: C.text, marginTop: 2 }}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: AI Engine & Models */}
-          {activeNav === 'engine' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>AI Engine & Models</h2>
-              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure high-speed NVIDIA NIM Cloud or 100% Offline Local Ollama.</p>
-
-              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>EXECUTION MODE</label>
-                  <select style={inputStyle} value={apiMode} onChange={e => setApiMode(e.target.value)}>
-                    <option value="free_key">NVIDIA NIM Cloud API Key (Fast 0.4s)</option>
-                    <option value="local_ollama">100% Offline Local Ollama</option>
-                  </select>
-                </div>
-
-                {apiMode === 'free_key' ? (
-                  <>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>MODEL</label>
-                      <select style={inputStyle} value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
-                        <option value="meta/llama-3.1-8b-instruct">meta/llama-3.1-8b-instruct (Fast & Accurate)</option>
-                        <option value="meta/llama-3.1-70b-instruct">meta/llama-3.1-70b-instruct (High Reasoning)</option>
-                        <option value="nvidia/nemotron-4-340b-instruct">nvidia/nemotron-4-340b-instruct (Max Capacity)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>NVIDIA NIM API KEY</label>
-                      <input type="password" style={inputStyle} value={nvidiaKey} onChange={e => setNvidiaKey(e.target.value)} placeholder="nvapi-..." />
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>OLLAMA URL</label>
-                    <input type="text" style={inputStyle} value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} />
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
-                  <button
-                    onClick={handleSaveEngine}
-                    style={{ height: 38, padding: '0 22px', borderRadius: 10, background: C.accent, border: 'none', color: C.accentText, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    Save Engine
-                  </button>
-                  {engineStatus === 'ok' && <span style={{ color: '#10b981', fontSize: 12 }}>✓ Engine Saved!</span>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: Snippets & Hotkeys */}
-          {activeNav === 'hotkey' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Snippets & Shortcut Keys</h2>
-              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure the universal push-to-talk key combo.</p>
-
-              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {['Ctrl+Shift', 'Ctrl+Space', 'Alt+Space', 'Ctrl+CapsLock'].map(k => (
-                    <button
-                      key={k}
-                      onClick={() => handleSaveShortcut(k)}
-                      style={{
-                        padding: '12px',
-                        borderRadius: 10,
-                        background: shortcutKey === k ? C.panelBg : C.cardBg,
-                        border: `1px solid ${shortcutKey === k ? (C.isLight ? '#0f172a' : '#ffffff') : C.border}`,
-                        color: shortcutKey === k ? C.text : C.textSub,
-                        fontSize: 13,
-                        fontFamily: 'monospace',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <span>{k}</span>
-                      {shortcutKey === k && <span>✓</span>}
-                    </button>
-                  ))}
-                </div>
-                {keyStatus === 'ok' && <div style={{ marginTop: 12, color: '#10b981', fontSize: 12 }}>✓ Hotkey updated to {shortcutKey}!</div>}
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: Dictionary / Knowledge Base */}
-          {activeNav === 'knowledge' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Dictionary & Knowledge Base</h2>
-              <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Discovered domains and web service shortcuts remembered by Ady.</p>
-
-              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {Object.entries(memoryData?.facts || {})
-                    .filter(([k]) => k.startsWith('Website URL'))
-                    .map(([k, v], i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
-                        <span style={{ fontSize: 12.5, color: C.text }}>{k.replace('Website URL (', '').replace(')', '')}</span>
-                        <a href={v} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: C.text, textDecoration: 'underline' }}>{v} ↗</a>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* VIEW: Settings & Profile */}
-          {(activeNav === 'settings') && (
+          {activeNav === 'settings' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: C.text }}>Settings & Persona</h2>
               <p style={{ fontSize: 13, color: C.textSub, margin: 0 }}>Configure personal profile, theme appearance, voice language, and app auto-updates.</p>
 
-              {/* Theme Switcher inside Settings */}
-              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 12 }}>THEME SELECTION</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                  {Object.entries(THEMES).map(([k, t]) => (
-                    <button
-                      key={k}
-                      onClick={() => handleSelectTheme(k)}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: 10,
-                        background: t.panelBg,
-                        border: `2px solid ${themeKey === k ? (t.isLight ? '#0f172a' : '#ffffff') : t.border}`,
-                        color: t.text,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 14, height: 14, borderRadius: '50%', background: t.preview[2] }} />
-                        <span>{t.name}</span>
-                      </div>
-                      {themeKey === k && <span>✓</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>NAME</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>YOUR NAME</label>
                   <input type="text" style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Your Name" />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>ABOUT YOU</label>
-                  <textarea style={{ ...inputStyle, height: 70, padding: '10px 14px', resize: 'none' }} value={profileDesc} onChange={e => setProfileDesc(e.target.value)} placeholder="Role and background..." />
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>ABOUT YOU / AI INSTRUCTIONS</label>
+                  <textarea style={{ ...inputStyle, height: 70, padding: '10px 14px', resize: 'none' }} value={profileDesc} onChange={e => setProfileDesc(e.target.value)} placeholder="Tell Ady about your role, background, or response preferences..." />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>LANGUAGE</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>VOICE LANGUAGE</label>
                   <select style={inputStyle} value={language} onChange={e => setLanguage(e.target.value)}>
                     {['English', 'Hindi', 'Spanish', 'French', 'German', 'Japanese'].map(l => <option key={l}>{l}</option>)}
                   </select>
