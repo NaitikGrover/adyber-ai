@@ -369,12 +369,26 @@ def init_system_push_to_talk():
                     )
             
             def process_audio():
-                text = stt_engine.stop_and_transcribe()
+                user_lang = llm_manager.settings.get("language", "English")
+                lang_code = "en-US"
+                if user_lang == "Hindi":
+                    lang_code = "en-IN"
+                elif user_lang == "Spanish":
+                    lang_code = "es-ES"
+                elif user_lang == "French":
+                    lang_code = "fr-FR"
+                elif user_lang == "German":
+                    lang_code = "de-DE"
+                elif user_lang == "Japanese":
+                    lang_code = "ja-JP"
+
+                text = stt_engine.stop_and_transcribe(language=lang_code)
                 
                 if text:
                     import re
-                    # Auto-correct phonetic misinterpretations of "A D" back to "Ady"
-                    text = re.sub(r'\b(a d|id|a a d|a-d|addy)\b', 'Ady', text, flags=re.IGNORECASE)
+                    # Auto-correct phonetic misinterpretations of "Ady" / "Adyber"
+                    text = re.sub(r'\b(a d|id|a a d|a-d|addy|eddy|eddie|adi|idi|eighty|ad|adey)\b', 'Ady', text, flags=re.IGNORECASE)
+                    text = re.sub(r'\b(ady bear|eddy bear|id bear|adi ber|addiber)\b', 'Adyber', text, flags=re.IGNORECASE)
 
                 if text and main_loop and active_websockets:
                     ws = list(active_websockets)[0]
