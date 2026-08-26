@@ -38,8 +38,8 @@ class AppLauncher:
         "ms paint": ["mspaint.exe"],
         "wordpad": ["write.exe"],
         "snipping tool": ["snippingtool.exe"],
-        "terminal": "wt:",
-        "windows terminal": "wt:",
+        "terminal": ["cmd.exe", "/c", "start", "wt"],
+        "windows terminal": ["cmd.exe", "/c", "start", "wt"],
         
         # Microsoft Office Suite
         "word": ["cmd.exe", "/c", "start", "", "winword"],
@@ -64,17 +64,17 @@ class AppLauncher:
         "roblox": "roblox:",
         "notion": "notion:",
         
-        # Windows System Folders
+        # Windows System Folders (Direct explorer.exe execution)
         "explorer": ["explorer.exe"],
         "file explorer": ["explorer.exe"],
         "my computer": ["explorer.exe"],
         "this pc": ["explorer.exe"],
-        "downloads": ["explorer.exe", "shell:Downloads"],
-        "documents": ["explorer.exe", "shell:Personal"],
-        "pictures": ["explorer.exe", "shell:My Pictures"],
-        "music": ["explorer.exe", "shell:My Music"],
-        "videos": ["explorer.exe", "shell:My Video"],
-        "desktop": ["explorer.exe", "shell:Desktop"]
+        "downloads": ["explorer.exe", os.path.expandvars(r"%USERPROFILE%\Downloads")],
+        "documents": ["explorer.exe", os.path.expandvars(r"%USERPROFILE%\Documents")],
+        "pictures": ["explorer.exe", os.path.expandvars(r"%USERPROFILE%\Pictures")],
+        "music": ["explorer.exe", os.path.expandvars(r"%USERPROFILE%\Music")],
+        "videos": ["explorer.exe", os.path.expandvars(r"%USERPROFILE%\Videos")],
+        "desktop": ["explorer.exe", os.path.expandvars(r"%USERPROFILE%\Desktop")]
     }
 
     # Pre-indexed Popular Web Services
@@ -112,7 +112,9 @@ class AppLauncher:
         "canva": "https://www.canva.com",
         "stackoverflow": "https://stackoverflow.com",
         "stack overflow": "https://stackoverflow.com",
-        "monkeytype": "https://monkeytype.com"
+        "monkeytype": "https://monkeytype.com",
+        "hotstar": "https://www.hotstar.com",
+        "hostinger": "https://www.hostinger.com"
     }
 
     @staticmethod
@@ -161,7 +163,7 @@ class AppLauncher:
         """Deep search across Windows Start Menu, Chrome/Edge Installed Apps, Desktops, LocalAppData, and PATH."""
         target_norm = AppLauncher._normalize_name(app_name)
         
-        # Comprehensive search directories including Chrome/Edge PWAs and Start Menu
+        # Candidate search directories for .lnk and .exe files
         search_globs = [
             os.path.expandvars(r'%ProgramData%\Microsoft\Windows\Start Menu\Programs\**\*.lnk'),
             os.path.expandvars(r'%APPDATA%\Microsoft\Windows\Start Menu\Programs\**\*.lnk'),
@@ -180,7 +182,7 @@ class AppLauncher:
             except Exception:
                 continue
 
-        # Pass 1: Exact matches first
+        # Pass 1: Exact normalized matches first
         for path in found_paths:
             base_name = os.path.basename(path)
             clean_base = AppLauncher._normalize_name(base_name.replace(".lnk", "").replace(".exe", ""))
@@ -231,7 +233,7 @@ class AppLauncher:
             song_search_clean = song_search_clean.replace(prefix, "")
         song_search_clean = song_search_clean.strip()
         
-        song_query_encoded = urllib.parse.quote_plus(song_search_clean) if song_search_clean and song_search_clean not in ["music", "song", "youtube music", "yt music", "spotify"] else ""
+        song_query_encoded = urllib.parse.quote_plus(song_search_clean) if song_search_clean and song_search_clean not in ["music", "song", "youtube music", "yt music", "spotify", "youtube", "yt"] else ""
         query_encoded = urllib.parse.quote_plus(query.strip()) if query else song_query_encoded
 
         # Explicit website request check: user MUST say "website", " site", "site ", "www.", "http", etc.
@@ -256,11 +258,28 @@ class AppLauncher:
             action_url = f"{base_url}/search?q={query_encoded}" if query_encoded else base_url
             memory.save_fact(learned_key, base_url)
 
-        # --- STEP 2: STANDARD YOUTUBE (MAIN PLATFORM) ---
-        elif target_clean in ["youtube", "yt"] and not any(k in target_clean for k in ["music", "song", "play"]):
+        # --- STEP 2: DIRECT SONG / MUSIC PLAYBACK SEARCH (HIGHEST PRIORITY OVER BLANK HOME PAGES) ---
+        elif song_query_encoded and (any(kw in target_clean for kw in ["play", "song", "music", "listen"]) or query):
+            if any(kw in target_clean for kw in ["youtube music", "yt music", "ytmusic"]):
+                action_url = f"https://music.youtube.com/search?q={song_query_encoded}"
+            elif "spotify" in target_clean:
+                action_url = f"spotify:search:{song_query_encoded}"
+            else:
+                action_url = f"https://www.youtube.com/results?search_query={song_query_encoded}"
+
+        # --- STEP 3: BUILT-IN SYSTEM UTILITIES (Explorer, Terminal, Cmd) ---
+        elif target_clean in ["explorer", "file explorer", "this pc", "my computer", "downloads", "documents", "pictures", "music", "videos", "desktop"]:
+            action_args = AppLauncher.KNOWN_APPS.get(target_clean, ["explorer.exe"])
+
+        elif target_clean in ["terminal", "windows terminal"]:
+            # Try wt first, fallback to powershell in runner
+            action_args = ["cmd.exe", "/c", "start", "wt"]
+
+        # --- STEP 4: STANDARD YOUTUBE (MAIN PLATFORM) ---
+        elif target_clean in ["youtube", "yt"]:
             action_url = f"https://www.youtube.com/results?search_query={query_encoded}" if query_encoded else "https://www.youtube.com"
 
-        # --- STEP 3: LOCAL PC APP & INSTALLED PWA SHORTCUT SCAN ---
+        # --- STEP 5: LOCAL PC APP & INSTALLED PWA SHORTCUT SCAN ---
         else:
             # Check if there is an installed desktop application, Chrome PWA shortcut, or system utility
             local_shortcut = AppLauncher._find_app_in_system(target_clean)
@@ -281,32 +300,7 @@ class AppLauncher:
                 else:
                     action_args = known
 
-            # --- STEP 3: MEDIA PLAYBACK & SONG SEARCH ---
-            elif any(kw in target_clean for kw in ["youtube music", "yt music", "ytmusic"]):
-                if song_search_clean and song_search_clean not in ["youtube music", "yt music", "ytmusic", "music", "song"]:
-                    action_url = f"https://music.youtube.com/search?q={song_query_encoded}"
-                else:
-                    action_url = "https://music.youtube.com"
-
-            elif "spotify" in target_clean:
-                if song_search_clean and song_search_clean != "spotify":
-                    action_url = f"spotify:search:{song_query_encoded}"
-                else:
-                    action_url = "spotify:"
-
-            elif target_clean in ["youtube", "yt"] or any(kw in target_clean for kw in ["play", "song", "music", "listen"]):
-                if song_search_clean and song_search_clean not in ["youtube", "yt", "song", "music", "play"]:
-                    action_url = f"https://www.youtube.com/results?search_query={song_query_encoded}"
-                else:
-                    action_url = "https://www.youtube.com"
-
-            elif target_clean in ["chrome", "google chrome", "browser"]:
-                if query:
-                    action_url = query if query.startswith("http") else f"https://www.google.com/search?q={query_encoded}"
-                else:
-                    action_args = ["cmd.exe", "/c", "start", "", "chrome"]
-
-            # --- STEP 4: AUTONOMOUS WEB DISCOVERY & MEMORY LEARNING ---
+            # --- STEP 6: AUTONOMOUS WEB DISCOVERY & MEMORY LEARNING ---
             else:
                 learned_url = memory.data.get("facts", {}).get(learned_key)
                 if learned_url:
@@ -352,7 +346,13 @@ class AppLauncher:
                     flags = 0
                     if os.name == 'nt':
                         flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
-                    subprocess.Popen(action_args, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
+                    try:
+                        subprocess.Popen(action_args, shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
+                    except Exception:
+                        # Fallback for terminal: powershell
+                        if "wt" in action_args or "terminal" in target_clean:
+                            print("[OS Automation] WT not found, falling back to PowerShell...")
+                            subprocess.Popen(["powershell.exe"], shell=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
             except Exception as e:
                 print(f"[OS Automation] Launch exception for {target}: {e}")
 
