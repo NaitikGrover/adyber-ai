@@ -114,7 +114,9 @@ class AppLauncher:
         "stack overflow": "https://stackoverflow.com",
         "monkeytype": "https://monkeytype.com",
         "hotstar": "https://www.hotstar.com",
-        "hostinger": "https://www.hostinger.com"
+        "hostinger": "https://www.hostinger.com",
+        "linear": "https://linear.app",
+        "anki": "https://apps.ankiweb.net"
     }
 
     @staticmethod
@@ -234,7 +236,6 @@ class AppLauncher:
         song_search_clean = song_search_clean.strip()
         
         song_query_encoded = urllib.parse.quote_plus(song_search_clean) if song_search_clean and song_search_clean not in ["music", "song", "youtube music", "yt music", "spotify", "youtube", "yt"] else ""
-        query_encoded = urllib.parse.quote_plus(query.strip()) if query else song_query_encoded
 
         # Explicit website request check: user MUST say "website", " site", "site ", "www.", "http", etc.
         is_explicit_website = any(kw in target_clean for kw in ["website", " site", "site ", "www.", "http://", "https://", ".com", ".org", ".io", ".net", ".ai", ".dev", ".edu", ".gov"]) or target_clean.startswith("http") or target_clean.startswith("www")
@@ -246,7 +247,7 @@ class AppLauncher:
         action_url = None
         target_path = None
 
-        # --- STEP 1: EXPLICIT WEBSITE REQUESTS ---
+        # --- STEP 1: EXPLICIT WEBSITE REQUESTS (ALWAYS CLEAN ROOT URL) ---
         if is_explicit_website:
             if clean_name in AppLauncher.KNOWN_WEBSITES:
                 base_url = AppLauncher.KNOWN_WEBSITES[clean_name]
@@ -255,10 +256,10 @@ class AppLauncher:
             else:
                 base_url = f"https://www.{clean_name}.com"
 
-            action_url = f"{base_url}/search?q={query_encoded}" if query_encoded else base_url
+            action_url = base_url
             memory.save_fact(learned_key, base_url)
 
-        # --- STEP 2: DIRECT SONG / MUSIC PLAYBACK SEARCH (HIGHEST PRIORITY OVER BLANK HOME PAGES) ---
+        # --- STEP 2: DIRECT SONG / MUSIC PLAYBACK SEARCH ---
         elif song_query_encoded and (any(kw in target_clean for kw in ["play", "song", "music", "listen"]) or query):
             if any(kw in target_clean for kw in ["youtube music", "yt music", "ytmusic"]):
                 action_url = f"https://music.youtube.com/search?q={song_query_encoded}"
@@ -272,12 +273,14 @@ class AppLauncher:
             action_args = AppLauncher.KNOWN_APPS.get(target_clean, ["explorer.exe"])
 
         elif target_clean in ["terminal", "windows terminal"]:
-            # Try wt first, fallback to powershell in runner
             action_args = ["cmd.exe", "/c", "start", "wt"]
 
         # --- STEP 4: STANDARD YOUTUBE (MAIN PLATFORM) ---
         elif target_clean in ["youtube", "yt"]:
-            action_url = f"https://www.youtube.com/results?search_query={query_encoded}" if query_encoded else "https://www.youtube.com"
+            if query and query != "youtube":
+                action_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(query)}"
+            else:
+                action_url = "https://www.youtube.com"
 
         # --- STEP 5: LOCAL PC APP & INSTALLED PWA SHORTCUT SCAN ---
         else:
@@ -300,15 +303,15 @@ class AppLauncher:
                 else:
                     action_args = known
 
-            # --- STEP 6: AUTONOMOUS WEB DISCOVERY & MEMORY LEARNING ---
+            # --- STEP 6: AUTONOMOUS WEB DISCOVERY & MEMORY LEARNING (CLEAN ROOT URLS) ---
             else:
                 learned_url = memory.data.get("facts", {}).get(learned_key)
                 if learned_url:
                     print(f"[OS Automation] Using previously learned website from memory: {learned_url}")
-                    action_url = f"{learned_url}/search?q={query_encoded}" if query_encoded else learned_url
+                    action_url = learned_url
                 elif clean_name in AppLauncher.KNOWN_WEBSITES:
                     base_url = AppLauncher.KNOWN_WEBSITES[clean_name]
-                    action_url = f"{base_url}/search?q={query_encoded}" if query_encoded else base_url
+                    action_url = base_url
                     memory.save_fact(learned_key, base_url)
                 else:
                     # Live Autonomous Web Discovery via DuckDuckGo
@@ -331,7 +334,7 @@ class AppLauncher:
 
                     memory.save_fact(learned_key, discovered_url)
                     print(f"[OS Automation] Learned & saved website to memory: {learned_key} -> {discovered_url}")
-                    action_url = f"{discovered_url}/search?q={query_encoded}" if query_encoded else discovered_url
+                    action_url = discovered_url
 
         def _run():
             try:
