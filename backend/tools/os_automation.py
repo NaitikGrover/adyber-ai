@@ -180,16 +180,25 @@ class AppLauncher:
             except Exception:
                 continue
 
-        # Check collected paths with fuzzy string matching
+        # Pass 1: Exact matches first
         for path in found_paths:
             base_name = os.path.basename(path)
             clean_base = AppLauncher._normalize_name(base_name.replace(".lnk", "").replace(".exe", ""))
-            
-            # Skip uninstaller shortcuts or generic helper executables
             if "uninstall" in clean_base or "update" in clean_base or "setup" in clean_base:
                 continue
-                
-            if target_norm == clean_base or target_norm in clean_base or clean_base in target_norm:
+            if target_norm == clean_base:
+                return path
+
+        # Pass 2: Fuzzy / Substring matches
+        for path in found_paths:
+            base_name = os.path.basename(path)
+            clean_base = AppLauncher._normalize_name(base_name.replace(".lnk", "").replace(".exe", ""))
+            if "uninstall" in clean_base or "update" in clean_base or "setup" in clean_base:
+                continue
+            # Guard: do not match "youtube" against "youtubemusic"
+            if target_norm == "youtube" and "music" in clean_base:
+                continue
+            if target_norm in clean_base or clean_base in target_norm:
                 return path
 
         # Registry lookup fallback
@@ -247,7 +256,11 @@ class AppLauncher:
             action_url = f"{base_url}/search?q={query_encoded}" if query_encoded else base_url
             memory.save_fact(learned_key, base_url)
 
-        # --- STEP 2: LOCAL PC APP & INSTALLED PWA SHORTCUT SCAN (PRIORITY 1) ---
+        # --- STEP 2: STANDARD YOUTUBE (MAIN PLATFORM) ---
+        elif target_clean in ["youtube", "yt"] and not any(k in target_clean for k in ["music", "song", "play"]):
+            action_url = f"https://www.youtube.com/results?search_query={query_encoded}" if query_encoded else "https://www.youtube.com"
+
+        # --- STEP 3: LOCAL PC APP & INSTALLED PWA SHORTCUT SCAN ---
         else:
             # Check if there is an installed desktop application, Chrome PWA shortcut, or system utility
             local_shortcut = AppLauncher._find_app_in_system(target_clean)
