@@ -65,7 +65,7 @@ class AppLauncher:
         "vlc": ["cmd.exe", "/c", "vlc"],
         
         # Social & Gaming
-        "discord": "discord:",
+        "discord": [os.path.expandvars(r"%LOCALAPPDATA%\Discord\Update.exe"), "--processStart", "Discord.exe"],
         "whatsapp": "whatsapp:",
         "telegram": "tg:",
         "zoom": "zoommtg:",
