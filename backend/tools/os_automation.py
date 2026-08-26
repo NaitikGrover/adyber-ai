@@ -303,17 +303,67 @@ class AppLauncher:
 
         else:
             # --- 3. STANDARD OS APP LAUNCHER & SYSTEM SCAN ---
-            known = AppLauncher.KNOWN_APPS.get(target_clean) or AppLauncher.KNOWN_APPS.get(clean_name)
-            if known:
-                if isinstance(known, str):
-                    action_url = known
-                else:
-                    action_args = known
+            # 3A. Check Memory for previously learned custom website or app URL
+            from backend.memory_manager import memory
+            learned_key = f"Website URL ({clean_name})"
+            learned_url = memory.data.get("facts", {}).get(learned_key)
+
+            if learned_url:
+                print(f"[OS Automation] Using previously learned website from memory: {learned_url}")
+                action_url = f"{learned_url}/search?q={query_encoded}" if query_encoded else learned_url
             else:
-                target_path = AppLauncher._find_app_in_system(target_clean)
-                if not target_path:
-                    print(f"[OS Automation] App '{target}' not found on system indexer.")
-                    return False
+                # 3B. Check Known Apps Dictionary
+                known = AppLauncher.KNOWN_APPS.get(target_clean) or AppLauncher.KNOWN_APPS.get(clean_name)
+                if known:
+                    if isinstance(known, str):
+                        if known.startswith("http://") or known.startswith("https://") or ":" in known:
+                            action_url = known
+                        elif os.path.exists(known):
+                            target_path = known
+                        else:
+                            action_args = ["cmd.exe", "/c", "start", "", known]
+                    else:
+                        action_args = known
+                else:
+                    # 3C. Deep Scan Local System for installed Desktop App / Shortcut
+                    target_path = AppLauncher._find_app_in_system(target_clean)
+
+                    # 3D. AUTONOMOUS WEB DISCOVERY & LEARNING FALLBACK
+                    # If not installed locally on computer, discover official website, open it, and learn it for next time!
+                    if not target_path:
+                        print(f"[OS Automation] App '{target}' not installed locally. Discovering official website via web search...")
+                        discovered_url = None
+
+                        # Check known websites first
+                        if clean_name in AppLauncher.KNOWN_WEBSITES:
+                            discovered_url = AppLauncher.KNOWN_WEBSITES[clean_name]
+                        elif "." in target_clean and " " not in target_clean:
+                            discovered_url = target_clean if target_clean.startswith("http") else f"https://{target_clean}"
+                        else:
+                            # Autonomous DuckDuckGo Search for Official Website
+                            try:
+                                from backend.tools.web_search import WebSearchEngine
+                                res = WebSearchEngine.search(f"{clean_name} official website")
+                                for s in res.get("sources", []):
+                                    url = s.get("url", "")
+                                    if url and not any(skip in url for skip in ["google.com", "wikipedia.org", "bing.com", "duckduckgo.com"]):
+                                        parsed = urllib.parse.urlparse(url)
+                                        discovered_url = f"{parsed.scheme}://{parsed.netloc}"
+                                        break
+                            except Exception as ex:
+                                print(f"[OS Automation] Web search discovery error: {ex}")
+
+                        if not discovered_url:
+                            discovered_url = f"https://www.{clean_name}.com"
+
+                        # Save learned website domain to permanent long-term memory!
+                        try:
+                            memory.save_fact(learned_key, discovered_url)
+                            print(f"[OS Automation] Learned & saved website to memory: {learned_key} -> {discovered_url}")
+                        except Exception:
+                            pass
+
+                        action_url = f"{discovered_url}/search?q={query_encoded}" if query_encoded else discovered_url
 
         def _run():
             try:
