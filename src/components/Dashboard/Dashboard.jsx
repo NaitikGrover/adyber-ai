@@ -2,20 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import logoImg from '/logo.png';
 import { saveUserDataToFirebase } from '../../firebase';
 
-// Design System Tokens (Flow Dark Theme)
+// Design System Tokens (Flow Dark Architecture)
 const D = {
-  bg: '#0c0d10',
-  cardBg: '#13151b',
-  cardBgAlt: '#181b22',
-  sidebarBg: '#090a0d',
+  shellBg: '#090a0d',       // Outer frame uniting top bar & sidebar
+  panelBg: '#13151b',       // Elevated main content dashboard container
+  cardBg: '#0c0d11',        // Inner cards
   border: 'rgba(255, 255, 255, 0.08)',
   borderLight: 'rgba(255, 255, 255, 0.04)',
-  borderHover: 'rgba(255, 255, 255, 0.16)',
+  borderActive: 'rgba(99, 102, 241, 0.4)',
   text: '#f8fafc',
   textSub: '#94a3b8',
   textMuted: '#64748b',
-  accent: '#f8fafc',
-  accentBg: 'rgba(255, 255, 255, 0.08)',
   purple: '#a855f7',
   indigo: '#6366f1',
   emerald: '#10b981',
@@ -27,7 +24,7 @@ const D = {
 const inputStyle = {
   width: '100%',
   height: 44,
-  background: '#14161d',
+  background: '#0e1014',
   border: `1px solid ${D.border}`,
   borderRadius: 8,
   padding: '0 14px',
@@ -40,7 +37,7 @@ const inputStyle = {
 };
 
 export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }) {
-  const [activeNav, setActiveNav] = useState('dictation'); // 'dictation', 'memory', 'engine', 'hotkey', 'knowledge', 'settings'
+  const [activeNav, setActiveNav] = useState('dictation');
   const [searchFilter, setSearchFilter] = useState('');
   const [copiedId, setCopiedId] = useState(null);
 
@@ -66,7 +63,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
 
   // Memory & Activity state
   const [memoryData, setMemoryData] = useState(null);
-  const [memoryStatus, setMemoryStatus] = useState('');
 
   // Profile Popover Menu
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -94,7 +90,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     }).catch(() => setAppVersion('1.1.0'));
   }, []);
 
-  // Fetch memory & history
   const loadMemory = () => {
     fetch('http://localhost:8000/memory')
       .then(r => r.json())
@@ -207,7 +202,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Filter history
   const rawHistory = memoryData?.conversation_history || [];
   const filteredHistory = rawHistory.filter(item => {
     if (!searchFilter) return true;
@@ -222,15 +216,16 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
     <div style={{
       width: '100vw',
       height: '100vh',
-      background: D.bg,
+      background: D.shellBg,
       display: 'flex',
       color: D.text,
       fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       overflow: 'hidden',
-      userSelect: 'none'
+      userSelect: 'none',
+      position: 'relative'
     }}>
 
-      {/* Top Drag & Control Bar */}
+      {/* Top Drag & Seamless Header (United with Outer Shell) */}
       <div style={{
         position: 'absolute',
         top: 0,
@@ -244,7 +239,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         WebkitAppRegion: 'drag',
         zIndex: 100
       }}>
-        {/* Left window control icons (Matching Flow reference) */}
+        {/* Left window control icons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, WebkitAppRegion: 'no-drag' }}>
           <button
             onClick={() => setActiveNav('dictation')}
@@ -267,7 +262,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           <button
             onClick={() => setActiveNav('settings')}
             style={{ background: 'none', border: 'none', color: updateStatus === 'available' ? D.sky : D.textMuted, cursor: 'pointer', display: 'flex', padding: 2 }}
-            title={updateStatus === 'available' ? 'Update Available!' : 'Notifications'}
+            title={updateStatus === 'available' ? 'Update Available!' : 'Settings & Notifications'}
           >
             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
           </button>
@@ -283,30 +278,30 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         </div>
       </div>
 
-      {/* Left Sidebar (Matching Flow Layout) */}
+      {/* Left Sidebar (United seamlessly with Shell Background) */}
       <div style={{
-        width: 220,
-        background: D.sidebarBg,
-        borderRight: `1px solid ${D.border}`,
+        width: 215,
+        background: 'transparent',
+        border: 'none',
         display: 'flex',
         flexDirection: 'column',
-        padding: '52px 12px 16px 12px',
+        padding: '48px 12px 14px 14px',
         flexShrink: 0,
         height: '100vh',
         boxSizing: 'border-box'
       }}>
         {/* Brand Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px 18px 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 6px 18px 6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <span style={{ width: 3, height: 14, background: '#fff', borderRadius: 2 }} />
             <span style={{ width: 3, height: 18, background: '#fff', borderRadius: 2 }} />
             <span style={{ width: 3, height: 10, background: '#fff', borderRadius: 2 }} />
           </div>
           <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.4px', color: '#fff' }}>Flow</span>
-          <span style={{ fontSize: 10, color: D.textMuted, marginLeft: 2, background: 'rgba(255,255,255,0.05)', padding: '1px 5px', borderRadius: 4 }}>Ady</span>
+          <span style={{ fontSize: 10, color: D.textMuted, marginLeft: 2, background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 4 }}>Ady</span>
         </div>
 
-        {/* Main Nav Items (Exact Flow Layout Structure) */}
+        {/* Main Nav Items */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
           {[
             { id: 'dictation', label: 'Dictation', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/> },
@@ -329,7 +324,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                   gap: 10,
                   padding: '7px 10px',
                   borderRadius: 8,
-                  background: active ? '#1a1c23' : 'transparent',
+                  background: active ? '#1a1c24' : 'transparent',
                   border: 'none',
                   color: active ? '#ffffff' : D.textSub,
                   fontSize: 13,
@@ -351,9 +346,9 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           })}
         </div>
 
-        {/* Bottom Upgrade to Pro Box (Matching Flow Layout) */}
+        {/* Bottom Tier Status Card */}
         <div style={{
-          background: '#12141a',
+          background: 'rgba(255,255,255,0.03)',
           border: `1px solid ${D.border}`,
           borderRadius: 10,
           padding: '12px',
@@ -361,7 +356,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: D.purple }}>Unlimited AI Engine</div>
           <div style={{ fontSize: 10.5, color: D.textMuted, marginTop: 4, lineHeight: 1.4 }}>
-            Fast NVIDIA NIM Cloud & local offline Ollama active.
+            NVIDIA NIM Cloud & Local Ollama active.
           </div>
           <button
             onClick={() => setActiveNav('engine')}
@@ -382,14 +377,14 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           </button>
         </div>
 
-        {/* Bottom Sidebar Links */}
+        {/* Bottom Links */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <button
             onClick={() => onClose && onClose()}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
+              gap: 8,
               padding: '6px 10px',
               borderRadius: 6,
               background: 'transparent',
@@ -414,7 +409,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
               justifyContent: 'space-between',
               padding: '6px 10px',
               borderRadius: 6,
-              background: activeNav === 'settings' ? '#1a1c23' : 'transparent',
+              background: activeNav === 'settings' ? '#1a1c24' : 'transparent',
               border: 'none',
               color: activeNav === 'settings' ? '#fff' : D.textSub,
               fontSize: 12,
@@ -438,34 +433,38 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
 
       </div>
 
-      {/* Main Content Area */}
+      {/* DISTINCT ELEVATED MAIN DASHBOARD PANEL (Rounded Card with Margins) */}
       <div style={{
         flex: 1,
-        height: '100vh',
+        margin: '42px 14px 14px 0',
+        background: D.panelBg,
+        borderRadius: 20,
+        border: `1px solid ${D.border}`,
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
         overflowY: 'auto',
-        padding: '52px 32px 32px 32px',
+        padding: '30px 36px',
         boxSizing: 'border-box',
-        background: D.bg
+        position: 'relative'
       }}>
-        <div style={{ maxWidth: 880, margin: '0 auto' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto' }}>
 
-          {/* VIEW: Dictation & Activity (Default Main Dashboard Matching Flow) */}
+          {/* VIEW: Dictation & Activity (Default Main Flow Dashboard) */}
           {(activeNav === 'dictation' || activeNav === 'transforms' || activeNav === 'scratchpad') && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
               
-              {/* Header Greeting */}
+              {/* Greeting */}
               <div>
                 <h1 style={{ fontSize: 24, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.4px' }}>
                   Welcome back, {name || 'Naitik'}
                 </h1>
               </div>
 
-              {/* Top Hero Row (Matching Flow Layout: Wide Card + Right Stats Card) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: 16 }}>
+              {/* Hero Row: Wide Banner + Right Stats Card */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 190px', gap: 16 }}>
                 
-                {/* Wide Hero Banner */}
+                {/* Wide Banner */}
                 <div style={{
-                  background: 'linear-gradient(135deg, #101217 0%, #151821 100%)',
+                  background: 'linear-gradient(135deg, #090a0d 0%, #101217 100%)',
                   border: `1px solid ${D.border}`,
                   borderRadius: 14,
                   padding: '24px 28px',
@@ -477,17 +476,17 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 }}>
                   <div style={{
                     position: 'absolute',
-                    right: -20,
-                    top: -20,
-                    width: 160,
-                    height: 160,
+                    right: -10,
+                    top: -10,
+                    width: 140,
+                    height: 140,
                     background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15), transparent)',
                     pointerEvents: 'none'
                   }} />
                   <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: '0 0 6px 0', fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic' }}>
                     Make Flow sound like <span style={{ fontStyle: 'normal', color: D.purple }}>you</span>
                   </h2>
-                  <p style={{ fontSize: 12, color: D.textSub, margin: '0 0 16px 0', maxWidth: 360 }}>
+                  <p style={{ fontSize: 12, color: D.textSub, margin: '0 0 16px 0', maxWidth: 380 }}>
                     Configure custom AI persona, preferred hotkeys ({shortcutKey}), and voice automation.
                   </p>
                   <div>
@@ -550,7 +549,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                 background: D.cardBg,
                 border: `1px solid ${D.border}`,
                 borderRadius: 14,
-                padding: '16px 20px'
+                padding: '18px 22px'
               }}>
                 {/* Header Row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 14, borderBottom: `1px solid ${D.border}` }}>
@@ -566,7 +565,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                         onChange={e => setSearchFilter(e.target.value)}
                         style={{
                           height: 26,
-                          background: '#0e1014',
+                          background: '#090a0d',
                           border: `1px solid ${D.border}`,
                           borderRadius: 14,
                           padding: '0 10px 0 26px',
@@ -600,16 +599,13 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                             gridTemplateColumns: '80px 1fr auto',
                             alignItems: 'center',
                             padding: '14px 0',
-                            borderBottom: idx < filteredHistory.length - 1 ? `1px solid ${D.borderLight}` : 'none',
-                            transition: 'background 0.15s ease'
+                            borderBottom: idx < filteredHistory.length - 1 ? `1px solid ${D.borderLight}` : 'none'
                           }}
                         >
-                          {/* Timestamp */}
                           <div style={{ fontSize: 11.5, color: D.textMuted }}>
                             {item.time || '12:00 pm'}
                           </div>
 
-                          {/* Content */}
                           <div style={{ paddingRight: 16 }}>
                             <div style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.4 }}>
                               {item.user}
@@ -621,7 +617,6 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
                             )}
                           </div>
 
-                          {/* Micro Action Buttons (Matching Flow: Play, Copy, Delete) */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <button
                               onClick={() => handleCopyText(item.user, idx)}
@@ -652,7 +647,7 @@ export default function Dashboard({ user, onClose, onResetOnboarding, onLogout }
           {activeNav === 'memory' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: '#fff' }}>Notetaker & Long-Term Memory</h2>
-              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>All persistent facts, user preferences, and learned web URLs saved in memory.</p>
+              <p style={{ fontSize: 13, color: D.textSub, margin: 0 }}>Persistent facts, user preferences, and learned web URLs saved in memory.</p>
 
               <div style={{ background: D.cardBg, border: `1px solid ${D.border}`, borderRadius: 12, padding: 20 }}>
                 <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 12 }}>Learned Facts</h3>
