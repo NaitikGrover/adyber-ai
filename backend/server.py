@@ -287,7 +287,7 @@ async def process_prompt_and_respond(user_text: str, websocket: WebSocket, tts):
 
     # 2. Fallback Intent Classifier (Guarantees execution even if LLM omits the XML tag)
     if not targets_to_launch:
-        p_lower = prompt.lower().strip()
+        p_lower = user_text.lower().strip()
         s_lower = summary_text.lower().strip()
 
         # Check User Prompt pattern: e.g. "open Google Chrome", "launch discord", "open kick.com", "play god's plan"
