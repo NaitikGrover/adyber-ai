@@ -157,10 +157,8 @@ The generated files will be placed in the `release/` directory.
 
 ## License
 
-This project is published under a **Source-Available & Educational License**.
+Adyber AI is licensed under the **MIT License**.
 
-- You are free to inspect and study the source code.
-- Commercial use is not permitted without prior written permission.
-- Redistribution and public derivative works are not permitted without prior written permission.
+You are free to use, modify, distribute, and use the software commercially, subject to the terms of the MIT License.
 
-See the [LICENSE](LICENSE) file for the complete terms.
+See the [LICENSE](LICENSE) file for the complete license text.
